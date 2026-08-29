@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>营销目标 - CRM</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <style>
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: var(--gap);
+    }
+
+    .kpi {
+      padding: 16px 18px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+    }
+
+    .kpi-1::after { background: #36cfc9; }
+    .kpi-2::after { background: var(--success); }
+    .kpi-3::after { background: var(--primary); }
+    .kpi-4::after { background: var(--orange); }
+    .kpi-5::after { background: var(--danger); }
+
+    .kpi-label {
+      font-size: var(--fs-sm);
+      color: var(--text-secondary);
+    }
+
+    .kpi-value {
+      margin: 8px 0 6px;
+      font-size: var(--fs-metric);
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .kpi-value span {
+      font-size: var(--fs-sm);
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-left: 4px;
+    }
+
+    .kpi-sub {
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+    }
+
+    .filter-bar {
+      padding: 16px;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      min-width: 140px;
+      flex: 1;
+    }
+
+    .field label {
+      display: block;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .field select,
+    .field input {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #d9d9d9;
+      border-radius: var(--radius-sm);
+      padding: 0 10px;
+      font-size: var(--fs-sm);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .field input:disabled {
+      background: #f5f5f5;
+      color: var(--text-secondary);
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      align-items: center;
+    }
+
+    .btn-md {
+      height: 32px;
+      padding: 0 14px;
+      font-size: var(--fs-sm);
+    }
+
+    .flow-note {
+      width: 100%;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .list-card {
+      padding: 0;
+      overflow: auto;
+    }
+
+    .list-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+    }
+
+    .list-tabs {
+      display: flex;
+      gap: 16px;
+      padding: 0 16px;
+    }
+
+    .tab {
+      border: 0;
+      background: none;
+      padding: 0 0 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: var(--fs-sm);
+      position: relative;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--fs-sm);
+    }
+
+    th,
+    td {
+      padding: 12px 12px;
+      text-align: left;
+      border-top: 1px solid #f0f0f0;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #fafafa;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .sub {
+      display: block;
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .rate-low {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .rate-ok {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .link {
+      border: 0;
+      background: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: var(--fs-sm);
+      padding: 0 6px 0 0;
+    }
+
+    .pager-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px 14px;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+    }
+
+    .page-btn {
+      min-width: 24px;
+      height: 24px;
+      border: 0;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 4px;
+    }
+
+    .mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 20;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .mask.show {
+      display: flex;
+    }
+
+    .modal {
+      width: 720px;
+      max-width: 100%;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .modal-head {
+      height: 44px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-size: var(--fs-md);
+      font-weight: 600;
+    }
+
+    .modal-close {
+      position: absolute;
+      right: 12px;
+      top: 0;
+      bottom: 0;
+      border: 0;
+      background: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px 24px 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px 16px;
+    }
+
+    .form-grid.two {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .split {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 14px;
+      color: var(--text-secondary);
+      font-size: var(--fs-sm);
+    }
+
+    .split::before,
+    .split::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .unit-wrap {
+      position: relative;
+    }
+
+    .unit-wrap input {
+      padding-right: 28px;
+    }
+
+    .unit {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .vs-row {
+      display: grid;
+      grid-template-columns: 88px 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .vs-label {
+      font-size: var(--fs-sm);
+    }
+
+    .pair {
+      display: flex;
+      align-items: stretch;
+    }
+
+    .tag {
+      height: 32px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      font-size: var(--fs-xs);
+      border: 1px solid #d9d9d9;
+      border-right: 0;
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      white-space: nowrap;
+    }
+
+    .tag-blue {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .tag-gray {
+      background: #f0f0f0;
+      color: var(--text-secondary);
+    }
+
+    .pair input {
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .formula {
+      margin-top: 12px;
+      background: #f5f5f5;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+    }
+
+    .rate-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--primary-soft);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: var(--fs-sm);
+    }
+
+    .rate-bar[hidden],
+    #createFields[hidden],
+    #editFields[hidden] {
+      display: none !important;
+    }
+
+    .rate-bar b {
+      color: var(--primary);
+      font-size: 16px;
+    }
+
+    .modal-foot {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 24px 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .kpi-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">CRM</div>
+      <nav class="nav">
+        <a class="nav-item" href="workbench.html">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16l3-4 3 2 4-6"/></svg>
+              销售中心
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <a class="nav-item active" href="marketing-goals.html">营销目标</a>
+            <a class="nav-item" href="leads.html">线索管理</a>
+            <a class="nav-item" href="opportunities.html">商机管理</a>
+            <a class="nav-item" href="contracts.html">合同管理</a>
+            <a class="nav-item" href="customers.html">客户管理</a>
+            <button class="nav-item" data-page="pending" type="button">销售业绩</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.5-3 2.8-5 5-5s4.5 2 5 5"/><path d="M16 8h5M18.5 5.5v5"/></svg>
+              客户中心
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">政务服务</button>
+            <button class="nav-item" data-page="pending" type="button">代账服务</button>
+            <button class="nav-item" data-page="pending" type="button">地址管理</button>
+            <button class="nav-item" data-page="pending" type="button">客户物品</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+              运营中心
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">财务报销</button>
+            <button class="nav-item" data-page="pending" type="button">经营报表</button>
+            <button class="nav-item" data-page="pending" type="button">人事管理</button>
+            <button class="nav-item" data-page="pending" type="button">薪资管理</button>
+            <button class="nav-item" data-page="pending" type="button">员工管理</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+              系统管理
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">角色权限</button>
+            <button class="nav-item" data-page="pending" type="button">字典管理</button>
+            <button class="nav-item" data-page="pending" type="button">菜单管理</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="header">
+        <div class="dropdown" id="mailDrop">
+          <button class="icon-btn" type="button" data-toggle="mailDrop" aria-label="消息">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>
+          </button>
+          <div class="dropdown-panel"><div class="empty">暂无新消息</div></div>
+        </div>
+        <div class="dropdown" id="helpDrop">
+          <button class="icon-btn" type="button" data-toggle="helpDrop" aria-label="帮助">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 114 2c-.7.7-1.5 1-1.5 2v.5"/><circle cx="12" cy="17" r=".8" fill="currentColor"/></svg>
+          </button>
+          <div class="dropdown-panel">
+            <button type="button" class="soon">使用说明</button>
+            <button type="button" class="soon">快捷键</button>
+          </div>
+        </div>
+        <div class="dropdown" id="userDrop">
+          <button class="user-chip" type="button" data-toggle="userDrop">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 19c1-4 3.5-6 7-6s6 2 7 6"/></svg>
+            用户
+          </button>
+          <div class="dropdown-panel">
+            <button type="button" class="soon">个人中心</button>
+            <button type="button" class="soon">退出登录</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="kpi-row" id="kpis"></div>
+
+        <section class="card filter-bar">
+          <div class="field">
+            <label title="来源：周期字典。去处：查询列表、汇总卡片、新建/编辑弹窗。">统计周期</label>
+            <select id="fPeriod" title="来源：周期字典；去处：筛选目标记录"></select>
+          </div>
+          <div class="field">
+            <label title="来源：年份字典。去处：查询列表、汇总卡片、新建/编辑弹窗。">年份</label>
+            <select id="fYear"></select>
+          </div>
+          <div class="field">
+            <label title="来源：部门字典。去处：查询、签约人选项、弹窗部门、列表部门。">部门</label>
+            <select id="fDept"></select>
+          </div>
+          <div class="field">
+            <label title="来源：业务员档案（与弹窗「业务员」同一字典）。去处：查询列表。">签约人</label>
+            <select id="fPerson"></select>
+          </div>
+          <div class="field">
+            <label title="来源：产品类型字典。去处：查询、新建/编辑弹窗、列表归属。">产品类型</label>
+            <select id="fProduct"></select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary btn-md" id="btnCreate" type="button">+ 新建目标</button>
+            <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置</button>
+            <button class="btn btn-primary btn-md" id="btnQuery" type="button">查询</button>
+          </div>
+          <div class="flow-note">
+            字典（周期/年份/部门/业务员/产品）→ 筛选与弹窗共用；目标值 ← 新建/编辑写入列表与顶部汇总；实际值 ← 线索/成交/商机/合同/续费回写（编辑只读）；综合完成率由五率平均算出后回写列表与「整体综合完成率」卡片。
+          </div>
+        </section>
+
+        <section class="card list-card">
+          <div class="list-head">
+            <div class="section-title" style="padding:0;font-size:14px;font-weight:600">营销目标列表</div>
+            <span id="totalHint" style="font-size:12px;color:var(--text-secondary)"></span>
+          </div>
+          <div class="list-tabs">
+            <button class="tab active" data-view="person" type="button">按业务员</button>
+            <button class="tab" data-view="dept" type="button">按部门</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>业务员/部门</th>
+                <th>新增线索(目标/实际)</th>
+                <th>成交客户(目标/实际)</th>
+                <th>商机数量(目标/实际)</th>
+                <th>签约金额(目标万/实际万)</th>
+                <th>续费金额(目标万/实际万)</th>
+                <th>综合完成率</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="pager-bar">
+            <span id="pageInfo"></span>
+            <button class="page-btn" type="button">1</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="mask" id="mask">
+    <div class="modal" role="dialog">
+      <div class="modal-head">
+        <span id="modalTitle">新建营销目标</span>
+        <button class="modal-close" id="modalClose" type="button">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>统计周期</label>
+            <select id="mPeriod"></select>
+          </div>
+          <div class="field">
+            <label>年份</label>
+            <select id="mYear"></select>
+          </div>
+          <div class="field">
+            <label>部门</label>
+            <select id="mDept"></select>
+          </div>
+        </div>
+        <div class="form-grid two" style="margin-top:14px">
+          <div class="field">
+            <label>业务员</label>
+            <select id="mPerson"></select>
+          </div>
+          <div class="field">
+            <label>产品类型</label>
+            <select id="mProduct"></select>
+          </div>
+        </div>
+
+        <div class="split" id="splitText">目标设置</div>
+        <div id="createFields" class="form-grid two"></div>
+        <div id="editFields" hidden></div>
+        <div class="rate-bar" id="rateBar" hidden>
+          <span>综合完成率</span>
+          <b id="liveRate">0%</b>
+        </div>
+        <div class="formula">综合完成率 = (线索完成率 + 客户完成率 + 商机完成率 + 金额完成率 + 续费完成率) ÷ 5</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" id="modalCancel" type="button">取消</button>
+        <button class="btn btn-primary btn-md" id="modalOk" type="button">确认新建</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/crm-store.js"></script>
+  <script>
+    const toast = (msg) => {
+      const wrap = document.getElementById("toasts");
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    };
+
+    document.querySelectorAll(".nav-group-btn").forEach((btn) => {
+      btn.addEventListener("click", () => btn.parentElement.classList.toggle("open"));
+    });
+    document.querySelectorAll("[data-page='pending']").forEach((el) => {
+      el.addEventListener("click", () => toast("功能即将开放"));
+    });
+    document.querySelectorAll(".soon").forEach((el) => el.addEventListener("click", () => toast("功能即将开放")));
+    document.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.toggle;
+        document.querySelectorAll(".dropdown").forEach((d) => {
+          if (d.id !== id) d.classList.remove("open");
+        });
+        document.getElementById(id).classList.toggle("open");
+      });
+    });
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".dropdown").forEach((d) => d.classList.remove("open"));
+    });
+
+    const fillSelect = (el, items, allLabel) => {
+      el.innerHTML = (allLabel ? `<option value="">${allLabel}</option>` : "") +
+        items.map((it) => `<option value="${it.id ?? it}">${it.name ?? it}</option>`).join("");
+    };
+
+    const fPeriod = document.getElementById("fPeriod");
+    const fYear = document.getElementById("fYear");
+    const fDept = document.getElementById("fDept");
+    const fPerson = document.getElementById("fPerson");
+    const fProduct = document.getElementById("fProduct");
+    const mPeriod = document.getElementById("mPeriod");
+    const mYear = document.getElementById("mYear");
+    const mDept = document.getElementById("mDept");
+    const mPerson = document.getElementById("mPerson");
+    const mProduct = document.getElementById("mProduct");
+
+    fillSelect(fPeriod, CRM.dicts.periods);
+    fillSelect(fYear, CRM.dicts.years.map((y) => ({ id: y, name: y })));
+    fillSelect(fDept, CRM.dicts.depts, "全部部门");
+    fillSelect(fProduct, CRM.dicts.products);
+    fillSelect(mPeriod, CRM.dicts.periods);
+    fillSelect(mYear, CRM.dicts.years.map((y) => ({ id: y, name: y })));
+    fillSelect(mDept, CRM.dicts.depts, "请选择");
+    fillSelect(mProduct, CRM.dicts.products, "请选择");
+    fPeriod.value = "year";
+    fYear.value = "2026";
+    fProduct.value = "book";
+
+    const refreshPersonOptions = (select, deptId, withAll) => {
+      const list = CRM.dicts.people.filter((p) => !deptId || p.deptId === deptId);
+      fillSelect(select, list, withAll ? "全部" : "请选择");
+    };
+    refreshPersonOptions(fPerson, "", true);
+    refreshPersonOptions(mPerson, "", false);
+
+    fDept.addEventListener("change", () => refreshPersonOptions(fPerson, fDept.value, true));
+    mDept.addEventListener("change", () => {
+      refreshPersonOptions(mPerson, mDept.value, false);
+      mPerson.value = "";
+    });
+    mPerson.addEventListener("change", () => {
+      const p = CRM.person(mPerson.value);
+      if (p) mDept.value = p.deptId;
+    });
+
+    let view = "person";
+    let mode = "create";
+    let editingId = null;
+    let goals = CRM.load();
+
+    const filters = () => ({
+      period: fPeriod.value,
+      year: Number(fYear.value),
+      deptId: fDept.value,
+      personId: fPerson.value,
+      productId: fProduct.value
+    });
+
+    const filtered = () => {
+      const f = filters();
+      return goals.filter((g) =>
+        (!f.period || g.period === f.period) &&
+        (!f.year || g.year === f.year) &&
+        (!f.deptId || g.deptId === f.deptId) &&
+        (!f.personId || g.personId === f.personId) &&
+        (!f.productId || g.productId === f.productId)
+      );
+    };
+
+    const fmt = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10));
+    const pct = (r) => (r * 100).toFixed(1) + "%";
+
+    const renderKpi = (rows) => {
+      const sum = (k) => rows.reduce((a, r) => a + r[k], 0);
+      const rate = rows.length ? rows.reduce((a, r) => a + CRM.rowRate(r), 0) / rows.length : 0;
+      const cards = [
+        ["总目标线索数", fmt(sum("leadTarget")), "条", `实际: ${fmt(sum("leadActual"))}条`, "kpi-1"],
+        ["总目标成交客户数", fmt(sum("customerTarget")), "家", `实际: ${fmt(sum("customerActual"))}家`, "kpi-2"],
+        ["总目标签约金额", fmt(sum("signTarget")), "万", `实际: ${fmt(sum("signActual"))}万`, "kpi-3"],
+        ["总目标续费金额", fmt(sum("renewTarget")), "万", `实际: ${fmt(sum("renewActual"))}万`, "kpi-4"],
+        ["整体综合完成率", (rate * 100).toFixed(1), "%", `距目标还差${((1 - rate) * 100).toFixed(1)}%`, "kpi-5"]
+      ];
+      document.getElementById("kpis").innerHTML = cards.map(([l, v, u, s, c]) => `
+        <section class="card kpi ${c}">
+          <div class="kpi-label">${l}</div>
+          <div class="kpi-value">${v}<span>${u}</span></div>
+          <div class="kpi-sub">${s}</div>
+        </section>`).join("");
+    };
+
+    const pair = (t, a) => `${fmt(t)} / ${fmt(a)}`;
+
+    const renderTable = () => {
+      const rows = filtered();
+      renderKpi(rows);
+      document.getElementById("totalHint").textContent = `共 ${rows.length} 条`;
+      document.getElementById("pageInfo").textContent = `共 ${rows.length} 条，每页 10 条`;
+      const tbody = document.getElementById("tbody");
+      if (view === "dept") {
+        const map = {};
+        rows.forEach((r) => {
+          const id = r.deptId;
+          if (!map[id]) {
+            map[id] = {
+              deptId: id,
+              _n: 0,
+              leadTarget: 0, leadActual: 0,
+              customerTarget: 0, customerActual: 0,
+              oppTarget: 0, oppActual: 0,
+              signTarget: 0, signActual: 0,
+              renewTarget: 0, renewActual: 0
+            };
+          }
+          CRM.metricKeys.forEach(({ key }) => {
+            map[id][key + "Target"] += r[key + "Target"];
+            map[id][key + "Actual"] += r[key + "Actual"];
+          });
+          map[id]._n += 1;
+        });
+        const groups = Object.values(map);
+        tbody.innerHTML = groups.map((r) => {
+          const rate = CRM.rowRate(r);
+          return `<tr>
+            <td>${CRM.dept(r.deptId).name}<span class="sub">${r._n} 人</span></td>
+            <td>${pair(r.leadTarget, r.leadActual)}</td>
+            <td>${pair(r.customerTarget, r.customerActual)}</td>
+            <td>${pair(r.oppTarget, r.oppActual)}</td>
+            <td>${pair(r.signTarget, r.signActual)}</td>
+            <td>${pair(r.renewTarget, r.renewActual)}</td>
+            <td class="${rate < 1 ? "rate-low" : "rate-ok"}">${pct(rate)}</td>
+            <td></td>
+          </tr>`;
+        }).join("") || `<tr><td colspan="8">暂无数据</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map((r) => {
+        const p = CRM.person(r.personId);
+        const d = CRM.dept(r.deptId);
+        const rate = CRM.rowRate(r);
+        return `<tr>
+          <td>${p.name}<span class="sub">${d.name} · ${CRM.product(r.productId).name}</span></td>
+          <td>${pair(r.leadTarget, r.leadActual)}</td>
+          <td>${pair(r.customerTarget, r.customerActual)}</td>
+          <td>${pair(r.oppTarget, r.oppActual)}</td>
+          <td>${pair(r.signTarget, r.signActual)}</td>
+          <td>${pair(r.renewTarget, r.renewActual)}</td>
+          <td class="${rate < 1 ? "rate-low" : "rate-ok"}">${pct(rate)}</td>
+          <td>
+            <button class="link" data-act="view" data-id="${r.id}" type="button">查看明细</button>
+            <button class="link" data-act="edit" data-id="${r.id}" type="button">编辑</button>
+          </td>
+        </tr>`;
+      }).join("") || `<tr><td colspan="8">暂无数据</td></tr>`;
+    };
+
+    document.querySelectorAll(".list-tabs .tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".list-tabs .tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        view = tab.dataset.view;
+        renderTable();
+      });
+    });
+
+    document.getElementById("createFields").innerHTML = CRM.metricKeys.map((m) => `
+      <div class="field">
+        <label>${m.label}(目标)</label>
+        <div class="unit-wrap">
+          <input id="c_${m.key}" type="number" min="0" step="0.1" placeholder="请输入" />
+          <span class="unit">${m.createUnit}</span>
+        </div>
+      </div>`).join("");
+
+    document.getElementById("editFields").innerHTML = CRM.metricKeys.map((m) => `
+      <div class="vs-row">
+        <div class="vs-label">${m.label}(${m.unit})</div>
+        <div class="pair">
+          <span class="tag tag-blue">目标</span>
+          <input id="e_${m.key}_t" type="number" min="0" step="0.1" />
+        </div>
+        <div class="pair">
+          <span class="tag tag-gray">实际</span>
+          <input id="e_${m.key}_a" type="number" disabled />
+        </div>
+      </div>`).join("");
+
+    const mask = document.getElementById("mask");
+    const closeModal = () => mask.classList.remove("show");
+
+    const openModal = (next, id, readonly) => {
+      mode = next;
+      editingId = id;
+      const createBox = document.getElementById("createFields");
+      const editBox = document.getElementById("editFields");
+      const rateBar = document.getElementById("rateBar");
+      const ok = document.getElementById("modalOk");
+      document.getElementById("modalTitle").textContent =
+        next === "create" ? "新建营销目标" : readonly ? "查看营销目标" : "编辑营销目标";
+      document.getElementById("splitText").textContent =
+        next === "create" ? "目标设置" : "目标设置 vs 实际完成";
+      createBox.hidden = next !== "create";
+      editBox.hidden = next === "create";
+      rateBar.hidden = next === "create";
+      ok.hidden = !!readonly;
+      ok.textContent = next === "create" ? "确认新建" : "保存修改";
+      ["mPeriod", "mYear", "mDept", "mPerson", "mProduct"].forEach((i) => {
+        document.getElementById(i).disabled = next !== "create" || readonly;
+      });
+      if (next === "create") {
+        mPeriod.value = fPeriod.value || "year";
+        mYear.value = fYear.value || "2026";
+        mDept.value = "";
+        refreshPersonOptions(mPerson, "", false);
+        mPerson.value = "";
+        mProduct.value = fProduct.value || "";
+        CRM.metricKeys.forEach((m) => { document.getElementById("c_" + m.key).value = ""; });
+      } else {
+        const row = goals.find((g) => g.id === id);
+        mPeriod.value = row.period;
+        mYear.value = String(row.year);
+        mDept.value = row.deptId;
+        refreshPersonOptions(mPerson, row.deptId, false);
+        mPerson.value = row.personId;
+        mProduct.value = row.productId;
+        CRM.metricKeys.forEach((m) => {
+          document.getElementById("e_" + m.key + "_t").value = row[m.key + "Target"];
+          document.getElementById("e_" + m.key + "_a").value = row[m.key + "Actual"];
+          document.getElementById("e_" + m.key + "_t").disabled = !!readonly;
+        });
+        document.getElementById("liveRate").textContent = pct(CRM.rowRate(row));
+      }
+      mask.classList.add("show");
+    };
+
+    document.getElementById("editFields").addEventListener("input", () => {
+      if (mode === "create") return;
+      const row = {
+        leadTarget: +document.getElementById("e_lead_t").value || 0,
+        leadActual: +document.getElementById("e_lead_a").value || 0,
+        customerTarget: +document.getElementById("e_customer_t").value || 0,
+        customerActual: +document.getElementById("e_customer_a").value || 0,
+        oppTarget: +document.getElementById("e_opp_t").value || 0,
+        oppActual: +document.getElementById("e_opp_a").value || 0,
+        signTarget: +document.getElementById("e_sign_t").value || 0,
+        signActual: +document.getElementById("e_sign_a").value || 0,
+        renewTarget: +document.getElementById("e_renew_t").value || 0,
+        renewActual: +document.getElementById("e_renew_a").value || 0
+      };
+      document.getElementById("liveRate").textContent = pct(CRM.rowRate(row));
+    });
+
+    document.getElementById("btnCreate").addEventListener("click", () => openModal("create"));
+    document.getElementById("modalClose").addEventListener("click", closeModal);
+    document.getElementById("modalCancel").addEventListener("click", closeModal);
+    mask.addEventListener("click", (e) => { if (e.target === mask) closeModal(); });
+
+    document.getElementById("tbody").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-act]");
+      if (!btn) return;
+      openModal("edit", btn.dataset.id, btn.dataset.act === "view");
+    });
+
+    document.getElementById("modalOk").addEventListener("click", () => {
+      if (mode === "create") {
+        if (!mDept.value || !mPerson.value || !mProduct.value) {
+          toast("请完整选择部门、业务员和产品类型");
+          return;
+        }
+        const person = CRM.person(mPerson.value);
+        const row = {
+          id: "g" + Date.now(),
+          period: mPeriod.value,
+          year: Number(mYear.value),
+          deptId: person.deptId,
+          personId: person.id,
+          productId: mProduct.value,
+          leadTarget: +document.getElementById("c_lead").value || 0,
+          leadActual: 0,
+          customerTarget: +document.getElementById("c_customer").value || 0,
+          customerActual: 0,
+          oppTarget: +document.getElementById("c_opp").value || 0,
+          oppActual: 0,
+          signTarget: +document.getElementById("c_sign").value || 0,
+          signActual: 0,
+          renewTarget: +document.getElementById("c_renew").value || 0,
+          renewActual: 0
+        };
+        if (goals.some((g) => CRM.uniqueKey(g) === CRM.uniqueKey(row))) {
+          toast("该业务员在此周期、产品下已有目标");
+          return;
+        }
+        goals.push(row);
+        CRM.save(goals);
+        toast("已写入营销目标列表");
+      } else {
+        const row = goals.find((g) => g.id === editingId);
+        CRM.metricKeys.forEach((m) => {
+          row[m.key + "Target"] = +document.getElementById("e_" + m.key + "_t").value || 0;
+        });
+        CRM.save(goals);
+        toast("目标已更新，汇总卡片已重算");
+      }
+      closeModal();
+      renderTable();
+    });
+
+    document.getElementById("btnQuery").addEventListener("click", renderTable);
+    document.getElementById("btnReset").addEventListener("click", () => {
+      fPeriod.value = "year";
+      fYear.value = "2026";
+      fDept.value = "";
+      refreshPersonOptions(fPerson, "", true);
+      fPerson.value = "";
+      fProduct.value = "book";
+      renderTable();
+    });
+
+    renderTable();
+  </script>
+</body>
+</html>

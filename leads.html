@@ -1,0 +1,918 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>线索管理 - CRM</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <style>
+    .toolbar {
+      padding: 16px;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .field label {
+      display: block;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #d9d9d9;
+      border-radius: var(--radius-sm);
+      padding: 0 10px;
+      font-size: var(--fs-sm);
+      background: #fff;
+    }
+    .field textarea {
+      height: 88px;
+      padding: 8px 10px;
+      resize: none;
+    }
+    .field input:disabled,
+    .field select:disabled {
+      background: #f5f5f5;
+      color: var(--text);
+    }
+    .range {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .range input { flex: 1; }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      align-items: center;
+    }
+    .btn-md { height: 32px; padding: 0 14px; font-size: var(--fs-sm); }
+    .flow-note {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .list-card { overflow: auto; }
+    .list-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px 0;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 10px 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      border: 0;
+      background: none;
+      padding: 8px 12px 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: var(--fs-sm);
+      position: relative;
+    }
+    .tab.active { color: var(--primary); font-weight: 600; }
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td {
+      padding: 10px 10px;
+      text-align: left;
+      border-top: 1px solid #f0f0f0;
+      white-space: nowrap;
+    }
+    th { background: #fafafa; color: var(--text-secondary); font-weight: 600; }
+    .link {
+      border: 0;
+      background: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0 6px 0 0;
+    }
+    .pager-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      gap: 8px;
+    }
+    .pager-bar button {
+      min-width: 24px;
+      height: 24px;
+      border: 1px solid #d9d9d9;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pager-bar button.on {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 20;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .mask.show { display: flex; }
+    .modal {
+      width: 720px;
+      max-width: 100%;
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      background: #fff;
+      border-radius: var(--radius);
+    }
+    .modal.sm { width: 480px; }
+    .modal.lg { width: 760px; }
+    .modal-head {
+      height: 44px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-weight: 600;
+    }
+    .modal-head.plain {
+      background: #fff;
+      color: var(--text);
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid #d6e8ff;
+    }
+    .modal-close {
+      position: absolute;
+      right: 12px;
+      top: 0;
+      bottom: 0;
+      border: 0;
+      background: none;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .modal-head.plain .modal-close { position: static; }
+    .modal-body { padding: 18px 22px 8px; }
+    .sec-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .sec-title::before {
+      content: "";
+      width: 3px;
+      height: 14px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+    .form-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 20px;
+    }
+    .span-2 { grid-column: 1 / -1; }
+    .ta-wrap { position: relative; }
+    .counter {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .modal-foot {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px 22px 20px;
+    }
+    .row-form { display: grid; grid-template-columns: 88px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; }
+    .row-form > label { padding-top: 6px; font-size: var(--fs-sm); }
+    .timeline { position: relative; padding-left: 88px; margin: 8px 0 20px; }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 72px;
+      top: 8px;
+      bottom: 8px;
+      width: 1px;
+      background: #e8e8e8;
+    }
+    .tl-item { position: relative; margin-bottom: 18px; }
+    .tl-date { text-align: center; color: var(--text-secondary); font-size: 12px; margin: 0 0 8px -88px; }
+    .tl-time {
+      position: absolute;
+      left: -88px;
+      top: 2px;
+      width: 72px;
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .tl-dot {
+      position: absolute;
+      left: -20px;
+      top: 6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #36cfc9;
+    }
+    .tl-dot.following { background: #fa8c16; }
+    .tl-dot.invalid { background: #ff7a45; }
+    .tl-dot.abandon { background: var(--danger); }
+    .st-following { color: #fa8c16; font-weight: 600; }
+    .st-invalid { color: #ff7a45; font-weight: 600; }
+    .st-abandon { color: var(--danger); font-weight: 600; }
+    .tl-box {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #595959;
+      line-height: 1.7;
+    }
+    .info-box {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px 16px;
+      font-size: 13px;
+    }
+    .info-box b { color: var(--text-secondary); font-weight: 400; margin-right: 6px; }
+    @media (max-width: 1100px) {
+      .filter-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">CRM</div>
+      <nav class="nav">
+        <a class="nav-item" href="workbench.html">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16l3-4 3 2 4-6"/></svg>
+              销售中心
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <a class="nav-item" href="marketing-goals.html">营销目标</a>
+            <a class="nav-item active" href="leads.html">线索管理</a>
+            <a class="nav-item" href="opportunities.html">商机管理</a>
+            <a class="nav-item" href="contracts.html">合同管理</a>
+            <a class="nav-item" href="customers.html">客户管理</a>
+            <button class="nav-item" data-page="pending" type="button">销售业绩</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.5-3 2.8-5 5-5s4.5 2 5 5"/></svg>
+              客户中心
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">政务服务</button>
+            <button class="nav-item" data-page="pending" type="button">代账服务</button>
+            <button class="nav-item" data-page="pending" type="button">地址管理</button>
+            <button class="nav-item" data-page="pending" type="button">客户物品</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+              运营中心
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">财务报销</button>
+            <button class="nav-item" data-page="pending" type="button">经营报表</button>
+            <button class="nav-item" data-page="pending" type="button">人事管理</button>
+            <button class="nav-item" data-page="pending" type="button">薪资管理</button>
+            <button class="nav-item" data-page="pending" type="button">员工管理</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <span class="left">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/></svg>
+              系统管理
+            </span>
+            <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">角色权限</button>
+            <button class="nav-item" data-page="pending" type="button">字典管理</button>
+            <button class="nav-item" data-page="pending" type="button">菜单管理</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="header">
+        <div class="dropdown" id="mailDrop">
+          <button class="icon-btn" type="button" data-toggle="mailDrop" aria-label="消息"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg></button>
+          <div class="dropdown-panel"><div class="empty">暂无新消息</div></div>
+        </div>
+        <div class="dropdown" id="helpDrop">
+          <button class="icon-btn" type="button" data-toggle="helpDrop" aria-label="帮助"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/></svg></button>
+          <div class="dropdown-panel"><button type="button" class="soon">使用说明</button></div>
+        </div>
+        <div class="dropdown" id="userDrop">
+          <button class="user-chip" type="button" data-toggle="userDrop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 19c1-4 3.5-6 7-6s6 2 7 6"/></svg>用户</button>
+          <div class="dropdown-panel"><button type="button" class="soon">个人中心</button></div>
+        </div>
+      </header>
+      <main class="content">
+        <section class="card toolbar">
+          <div class="filter-grid">
+            <div class="field"><label title="来源：员工字典（与营销目标业务员相同）">业务员</label><select id="fOwner"></select></div>
+            <div class="field"><label title="来源：来源渠道字典">来源</label><select id="fSource"></select></div>
+            <div class="field"><label title="来源：区域字典">地区</label><select id="fRegion"></select></div>
+            <div class="field"><label>行业</label><input id="fIndustry" placeholder="请输入行业" /></div>
+            <div class="field"><label>跟进时间</label><div class="range"><input id="fFollowFrom" type="date" /><span>-</span><input id="fFollowTo" type="date" /></div></div>
+            <div class="field"><label>创建时间</label><div class="range"><input id="fCreateFrom" type="date" /><span>-</span><input id="fCreateTo" type="date" /></div></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置搜索条件</button>
+            <button class="btn btn-primary btn-md" id="btnQuery" type="button">线索列表</button>
+            <button class="btn btn-primary btn-md" id="btnAdd" type="button">添加线索</button>
+          </div>
+          <div class="flow-note">客户信息来自「添加线索」；业务员来自员工字典，分配后回写列表筛选；跟进状态来自「添加跟进」并生成详情时间轴；查看线索仅可改跟进内容与下次跟进时间，保存后「最后跟进时间」记为当前时间；新增线索会计入营销目标对应业务员的线索实际数。</div>
+        </section>
+        <section class="card list-card">
+          <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="all" type="button">全部线索</button>
+            <button class="tab" data-tab="following" type="button">跟进中</button>
+            <button class="tab" data-tab="abandon" type="button">放弃</button>
+            <button class="tab" data-tab="invalid" type="button">无效</button>
+            <button class="tab" data-tab="opportunity" type="button">转商机</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>客户/公司姓名</th>
+                <th>手机号码</th>
+                <th>区域</th>
+                <th>行业</th>
+                <th>来源渠道</th>
+                <th>企业形式</th>
+                <th>跟进结果</th>
+                <th>是否添加微信</th>
+                <th>最后添加跟进时间</th>
+                <th>下次跟进时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="pager-bar">
+            <span id="pageInfo"></span>
+            <div id="pages"></div>
+            <label>每页 <select id="pageSize"><option>10</option><option>20</option></select> 条</label>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="mask" id="leadMask">
+    <div class="modal">
+      <div class="modal-head"><span id="leadTitle">添加线索</span><button class="modal-close" data-close="leadMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="sec-title">客户信息</div>
+        <div class="form-2">
+          <div class="field"><label>客户/公司名</label><input id="l_name" /></div>
+          <div class="field"><label>手机号码 <span style="color:var(--danger)">*</span></label><input id="l_phone" /></div>
+          <div class="field"><label>区域</label><select id="l_region"></select></div>
+          <div class="field"><label>行业</label><select id="l_industry"></select></div>
+          <div class="field"><label>来源渠道</label><select id="l_source"></select></div>
+          <div class="field"><label>企业形式</label><select id="l_company"></select></div>
+          <div class="field"><label>跟进结果</label><select id="l_result"></select></div>
+          <div class="field"><label>线索分类</label><select id="l_cate"></select></div>
+          <div class="field"><label>是否添加微信</label><select id="l_wechat"></select></div>
+          <div class="field"><label>预计下次跟进时间</label><input id="l_next" type="datetime-local" /></div>
+          <div class="field span-2"><label>跟进内容</label>
+            <div class="ta-wrap"><textarea id="l_content" maxlength="500" placeholder="请输入跟进内容"></textarea><span class="counter" id="l_count">0/500</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-primary btn-md" id="leadOk" type="button">确认</button>
+        <button class="btn btn-ghost btn-md" data-close="leadMask" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="fuMask">
+    <div class="modal sm">
+      <div class="modal-head">添加跟进<button class="modal-close" data-close="fuMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="row-form"><label>跟进状态</label><select id="fu_status"></select></div>
+        <div class="row-form"><label>跟进时间</label><input id="fu_time" type="datetime-local" /></div>
+        <div class="row-form" id="fuExtra"><label id="fuExtraLabel">跟进内容</label><textarea id="fu_text" placeholder="请输入跟进内容"></textarea></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-primary btn-md" id="fuOk" type="button">确认</button>
+        <button class="btn btn-ghost btn-md" data-close="fuMask" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="asMask">
+    <div class="modal sm">
+      <div class="modal-head">分配线索<button class="modal-close" data-close="asMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="row-form"><label>当前线索</label><input id="as_name" disabled /></div>
+        <div class="row-form"><label>分配给</label><select id="as_owner"></select></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-primary btn-md" id="asOk" type="button">确认分配</button>
+        <button class="btn btn-ghost btn-md" data-close="asMask" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="opMask">
+    <div class="modal">
+      <div class="modal-head">转商机<button class="modal-close" data-close="opMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="sec-title">客户信息</div>
+        <div class="form-2">
+          <div class="field"><label>客户姓名</label><input id="o_name" disabled /></div>
+          <div class="field"><label>手机号码 <span style="color:var(--danger)">*</span></label><input id="o_phone" disabled /></div>
+          <div class="field"><label>区域</label><select id="o_region" disabled></select></div>
+          <div class="field"><label>行业</label><select id="o_industry" disabled></select></div>
+          <div class="field"><label>来源渠道</label><select id="o_source" disabled></select></div>
+          <div class="field"><label>企业形式</label><select id="o_company" disabled></select></div>
+          <div class="field"><label>跟进结果</label><select id="o_result" disabled></select></div>
+          <div class="field"><label>线索分类</label><select id="o_cate" disabled></select></div>
+          <div class="field"><label>是否添加微信</label><select id="o_wechat" disabled></select></div>
+          <div class="field"><label>商机等级</label><select id="o_level"></select></div>
+          <div class="field"><label>商机阶段</label><select id="o_stage"></select></div>
+          <div class="field"><label>意向商品</label><select id="o_product"></select></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-primary btn-md" id="opOk" type="button">确认</button>
+        <button class="btn btn-ghost btn-md" data-close="opMask" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="deMask">
+    <div class="modal lg">
+      <div class="modal-head plain">跟进记录详情<button class="modal-close" data-close="deMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div id="timeline" class="timeline"></div>
+        <div class="sec-title">添加线索信息</div>
+        <div class="info-box" id="infoGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/crm-store.js"></script>
+  <script>
+    const toast = (m) => {
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = m;
+      document.getElementById("toasts").appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    };
+    document.querySelectorAll(".nav-group-btn").forEach((b) => b.addEventListener("click", () => b.parentElement.classList.toggle("open")));
+    document.querySelectorAll("[data-page=pending],.soon").forEach((el) => el.addEventListener("click", () => toast("功能即将开放")));
+    document.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.toggle;
+        document.querySelectorAll(".dropdown").forEach((d) => d.classList.toggle("open", d.id === id && !d.classList.contains("open")));
+      });
+    });
+    document.addEventListener("click", () => document.querySelectorAll(".dropdown").forEach((d) => d.classList.remove("open")));
+    document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => document.getElementById(b.dataset.close).classList.remove("show")));
+
+    const fill = (el, list, all) => {
+      el.innerHTML = (all != null ? `<option value="">${all}</option>` : "") + list.map((x) => `<option value="${x.id}">${x.name}</option>`).join("");
+    };
+    fill(document.getElementById("fOwner"), CRM.dicts.people, "请选择");
+    fill(document.getElementById("fSource"), CRM.dicts.sources, "请选择");
+    fill(document.getElementById("fRegion"), CRM.dicts.regions, "请选择地区");
+    fill(document.getElementById("l_region"), CRM.dicts.regions);
+    fill(document.getElementById("l_industry"), CRM.dicts.industries);
+    fill(document.getElementById("l_source"), CRM.dicts.sources);
+    fill(document.getElementById("l_company"), CRM.dicts.companyTypes);
+    fill(document.getElementById("l_result"), CRM.dicts.followResults);
+    fill(document.getElementById("l_cate"), CRM.dicts.categories);
+    fill(document.getElementById("l_wechat"), CRM.dicts.wechat);
+    fill(document.getElementById("o_region"), CRM.dicts.regions);
+    fill(document.getElementById("o_industry"), CRM.dicts.industries);
+    fill(document.getElementById("o_source"), CRM.dicts.sources);
+    fill(document.getElementById("o_company"), CRM.dicts.companyTypes);
+    fill(document.getElementById("o_result"), CRM.dicts.followResults);
+    fill(document.getElementById("o_cate"), CRM.dicts.categories);
+    fill(document.getElementById("o_wechat"), CRM.dicts.wechat);
+    fill(document.getElementById("o_stage"), CRM.dicts.oppStages);
+    fill(document.getElementById("o_level"), CRM.dicts.oppLevels);
+    fill(document.getElementById("o_product"), CRM.dicts.products, "请选择");
+    fill(document.getElementById("fu_status"), CRM.dicts.followResults.filter((x) => x.id !== "opportunity"));
+    fill(document.getElementById("as_owner"), CRM.dicts.people);
+
+    const minDT = () => {
+      const d = new Date();
+      const y = Math.max(d.getFullYear(), 2026);
+      const m = y === 2026 ? Math.max(d.getMonth() + 1, 8) : d.getMonth() + 1;
+      const day = (y === d.getFullYear() && m === d.getMonth() + 1) ? d.getDate() : 1;
+      const p = (n) => String(n).padStart(2, "0");
+      return `${y}-${p(m)}-${p(day)}T00:00`;
+    };
+    const nowText = () => {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    };
+    const toLocal = (s) => (s ? s.replace(" ", "T").slice(0, 16) : "");
+    const fromLocal = (s) => (s ? s.replace("T", " ") + (s.length === 16 ? ":00" : "") : "");
+
+    document.getElementById("l_next").min = minDT();
+    document.getElementById("fu_time").min = minDT();
+
+    let leads = CRM.loadLeads();
+    let tab = "all";
+    let page = 1;
+    let leadMode = "add";
+    let currentId = null;
+    let viewSnapshot = "";
+
+    const filtered = () => {
+      const owner = fOwner.value, source = fSource.value, region = fRegion.value;
+      const ind = fIndustry.value.trim();
+      const ff = fFollowFrom.value, ft = fFollowTo.value, cf = fCreateFrom.value, ct = fCreateTo.value;
+      return leads.filter((l) => {
+        if (tab !== "all" && l.followResult !== tab) return false;
+        if (owner && l.ownerId !== owner) return false;
+        if (source && l.sourceId !== source) return false;
+        if (region && l.regionId !== region) return false;
+        if (ind && CRM.dictName("industries", l.industryId).indexOf(ind) < 0) return false;
+        const last = (l.lastFollowAt || "").slice(0, 10);
+        const cre = (l.createdAt || "").slice(0, 10);
+        if (ff && last < ff) return false;
+        if (ft && last > ft) return false;
+        if (cf && cre < cf) return false;
+        if (ct && cre > ct) return false;
+        return true;
+      });
+    };
+
+    const render = () => {
+      const rows = filtered();
+      const size = Number(pageSize.value);
+      const pages = Math.max(1, Math.ceil(rows.length / size));
+      if (page > pages) page = pages;
+      const slice = rows.slice((page - 1) * size, page * size);
+      const followTabs = ["following", "abandon", "invalid"];
+      tbody.innerHTML = slice.map((l) => {
+        const extra = followTabs.includes(tab) ? `<button class="link" data-act="follow" data-id="${l.id}" type="button">添加跟进</button>` : "";
+        const conv = (tab === "opportunity" || tab === "following" || (tab === "all" && l.followResult === "following"))
+          ? `<button class="link" data-act="convert" data-id="${l.id}" type="button">转商机</button>` : "";
+        return `<tr>
+          <td>${l.name || "—"}</td><td>${l.phone || "—"}</td>
+          <td>${CRM.dictName("regions", l.regionId)}</td>
+          <td>${CRM.dictName("industries", l.industryId)}</td>
+          <td>${CRM.dictName("sources", l.sourceId)}</td>
+          <td>${CRM.dictName("companyTypes", l.companyTypeId)}</td>
+          <td>${CRM.dictName("followResults", l.followResult)}</td>
+          <td>${CRM.dictName("wechat", l.wechatId)}</td>
+          <td>${l.lastFollowAt || "—"}</td>
+          <td>${l.nextFollowAt || "—"}</td>
+          <td>
+            <button class="link" data-act="view" data-id="${l.id}" type="button">查看</button>
+            <button class="link" data-act="assign" data-id="${l.id}" type="button">分配</button>
+            ${extra}
+            ${conv}
+            <button class="link" data-act="detail" data-id="${l.id}" type="button">详情</button>
+          </td>
+        </tr>`;
+      }).join("") || `<tr><td colspan="11">暂无数据</td></tr>`;
+      pageInfo.textContent = `共 ${rows.length} 条`;
+      pagesBox.innerHTML = Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === page ? "on" : ""}" data-p="${i + 1}" type="button">${i + 1}</button>`).join("");
+    };
+
+    const fOwner = document.getElementById("fOwner");
+    const fSource = document.getElementById("fSource");
+    const fRegion = document.getElementById("fRegion");
+    const fIndustry = document.getElementById("fIndustry");
+    const fFollowFrom = document.getElementById("fFollowFrom");
+    const fFollowTo = document.getElementById("fFollowTo");
+    const fCreateFrom = document.getElementById("fCreateFrom");
+    const fCreateTo = document.getElementById("fCreateTo");
+    const tbody = document.getElementById("tbody");
+    const pageSize = document.getElementById("pageSize");
+    const pagesBox = document.getElementById("pages");
+    const pageInfo = document.getElementById("pageInfo");
+
+    document.getElementById("tabs").addEventListener("click", (e) => {
+      const t = e.target.closest("[data-tab]");
+      if (!t) return;
+      document.querySelectorAll("#tabs .tab").forEach((x) => x.classList.toggle("active", x === t));
+      tab = t.dataset.tab;
+      page = 1;
+      render();
+    });
+    pagesBox.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-p]");
+      if (!b) return;
+      page = Number(b.dataset.p);
+      render();
+    });
+    pageSize.addEventListener("change", () => { page = 1; render(); });
+    document.getElementById("btnQuery").addEventListener("click", () => { page = 1; render(); });
+    document.getElementById("btnReset").addEventListener("click", () => {
+      fOwner.value = fSource.value = fRegion.value = fIndustry.value = "";
+      fFollowFrom.value = fFollowTo.value = fCreateFrom.value = fCreateTo.value = "";
+      page = 1;
+      render();
+    });
+
+    const setLeadLock = (lock) => {
+      ["l_name", "l_phone", "l_region", "l_industry", "l_source", "l_company", "l_result", "l_cate", "l_wechat"].forEach((id) => {
+        document.getElementById(id).disabled = lock;
+      });
+      document.getElementById("l_next").disabled = false;
+      document.getElementById("l_content").disabled = false;
+    };
+
+    const fillLeadForm = (row) => {
+      l_name.value = row?.name || "";
+      l_phone.value = row?.phone || "";
+      l_region.value = row?.regionId || CRM.dicts.regions[0].id;
+      l_industry.value = row?.industryId || CRM.dicts.industries[0].id;
+      l_source.value = row?.sourceId || CRM.dicts.sources[0].id;
+      l_company.value = row?.companyTypeId || CRM.dicts.companyTypes[0].id;
+      l_result.value = row?.followResult || "following";
+      l_cate.value = row?.categoryId || CRM.dicts.categories[0].id;
+      l_wechat.value = row?.wechatId || "no";
+      l_next.value = toLocal(row?.nextFollowAt);
+      l_content.value = row?.followContent || "";
+      l_count.textContent = `${l_content.value.length}/500`;
+    };
+
+    const openLead = (mode, id) => {
+      leadMode = mode;
+      currentId = id;
+      document.getElementById("leadTitle").textContent = mode === "add" ? "添加线索" : "查看线索";
+      document.getElementById("leadOk").textContent = "确认";
+      setLeadLock(mode === "view");
+      if (mode === "add") fillLeadForm({ followResult: "following", wechatId: "yes" });
+      else fillLeadForm(leads.find((x) => x.id === id));
+      viewSnapshot = l_content.value;
+      document.getElementById("leadMask").classList.add("show");
+    };
+
+    document.getElementById("l_content").addEventListener("input", () => {
+      l_count.textContent = `${l_content.value.length}/500`;
+    });
+    document.getElementById("btnAdd").addEventListener("click", () => openLead("add"));
+    document.getElementById("leadOk").addEventListener("click", () => {
+      if (!l_phone.value.trim()) { toast("请填写手机号码"); return; }
+      if (leadMode === "add") {
+        const row = {
+          id: "l" + Date.now(),
+          name: l_name.value.trim(),
+          phone: l_phone.value.trim(),
+          regionId: l_region.value,
+          industryId: l_industry.value,
+          sourceId: l_source.value,
+          companyTypeId: l_company.value,
+          followResult: l_result.value,
+          categoryId: l_cate.value,
+          wechatId: l_wechat.value,
+          followContent: l_content.value,
+          nextFollowAt: fromLocal(l_next.value),
+          lastFollowAt: nowText(),
+          createdAt: nowText(),
+          ownerId: fOwner.value || "lqh",
+          logs: [{ at: nowText(), type: "create", user: fOwner.value || "lqh", text: "创建了线索" }]
+        };
+        leads.unshift(row);
+        CRM.saveLeads(leads);
+        CRM.bumpMetric(row.ownerId, "leadActual", 1);
+        toast("线索已写入列表，并计入营销目标线索实际");
+      } else {
+        const row = leads.find((x) => x.id === currentId);
+        row.nextFollowAt = fromLocal(l_next.value);
+        row.followContent = l_content.value;
+        if (l_content.value !== viewSnapshot) {
+          row.lastFollowAt = nowText();
+          row.logs.unshift({ at: row.lastFollowAt, type: "note", user: CRM.person(row.ownerId)?.name || "用户", text: "跟进内容：" + l_content.value });
+        }
+        CRM.saveLeads(leads);
+        toast("已更新，最后跟进时间已记为当前时间");
+      }
+      document.getElementById("leadMask").classList.remove("show");
+      render();
+    });
+
+    const syncFuExtra = () => {
+      const st = fu_status.value;
+      const map = { following: ["跟进内容", "请输入跟进内容"], invalid: ["无效说明", "请输入无效说明"], abandon: ["放弃说明", "请输入放弃说明"] };
+      const [lab, ph] = map[st] || map.following;
+      fuExtraLabel.textContent = lab;
+      fu_text.placeholder = ph;
+    };
+    document.getElementById("fu_status").addEventListener("change", syncFuExtra);
+
+    const openFollow = (id) => {
+      currentId = id;
+      const row = leads.find((x) => x.id === id);
+      fu_status.value = ["following", "abandon", "invalid"].includes(row.followResult) ? row.followResult : "following";
+      fu_time.value = minDT();
+      fu_text.value = "";
+      syncFuExtra();
+      document.getElementById("fuMask").classList.add("show");
+    };
+
+    document.getElementById("fuOk").addEventListener("click", () => {
+      const row = leads.find((x) => x.id === currentId);
+      const st = fu_status.value;
+      const t = fromLocal(fu_time.value) || nowText();
+      const from = row.followResult;
+      row.followResult = st;
+      row.lastFollowAt = t;
+      const label = { following: "跟进内容", invalid: "无效说明", abandon: "放弃说明" }[st];
+      row.logs.unshift({
+        at: t,
+        type: "follow",
+        status: st,
+        from,
+        user: CRM.person(row.ownerId)?.name || "用户",
+        text: `${label}：${fu_text.value || "—"}`
+      });
+      CRM.saveLeads(leads);
+      document.getElementById("fuMask").classList.remove("show");
+      toast("跟进已写入详情时间轴");
+      render();
+    });
+
+    const openAssign = (id) => {
+      currentId = id;
+      const row = leads.find((x) => x.id === id);
+      as_name.value = row.name || row.phone;
+      as_owner.value = row.ownerId;
+      document.getElementById("asMask").classList.add("show");
+    };
+    document.getElementById("asOk").addEventListener("click", () => {
+      const row = leads.find((x) => x.id === currentId);
+      row.ownerId = as_owner.value;
+      CRM.saveLeads(leads);
+      document.getElementById("asMask").classList.remove("show");
+      toast("已分配给 " + CRM.person(row.ownerId).name);
+      render();
+    });
+
+    const openDetail = (id) => {
+      const row = leads.find((x) => x.id === id);
+      const logs = (row.logs || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
+      timeline.innerHTML = logs.map((log) => {
+        const date = log.at.slice(0, 10);
+        const time = log.at.slice(11);
+        const st = log.status || (log.type === "create" ? "create" : "");
+        const title = log.type === "create"
+          ? `创建线索 ${log.user}`
+          : `<span class="st-${st}">${CRM.dictName("followResults", st)}</span> 跟进记录 ${log.user}`;
+        const extra = log.from && log.from !== log.status
+          ? `跟进状态 [${CRM.dictName("followResults", log.from)}] → [${CRM.dictName("followResults", log.status)}]<br>`
+          : log.status ? `跟进状态 [${CRM.dictName("followResults", log.status)}]<br>` : "";
+        return `<div class="tl-item">
+          <div class="tl-date">${date}</div>
+          <div class="tl-time">${time}</div>
+          <span class="tl-dot ${st}"></span>
+          <div>${title}</div>
+          <div class="tl-box">${extra}${log.text}</div>
+        </div>`;
+      }).join("");
+      const v = (k, id) => CRM.dictName(k, id);
+      infoGrid.innerHTML = `
+        <div><b>客户姓名</b>${row.name || "—"}</div>
+        <div><b>手机号码</b>${row.phone || "—"}</div>
+        <div><b>区域</b>${v("regions", row.regionId)}</div>
+        <div><b>行业</b>${v("industries", row.industryId)}</div>
+        <div><b>企业形式</b>${v("companyTypes", row.companyTypeId)}</div>
+        <div><b>来源渠道</b>${v("sources", row.sourceId)}</div>
+        <div><b>跟进结果</b>${v("followResults", row.followResult)}</div>
+        <div><b>线索分类</b>${v("categories", row.categoryId)}</div>
+        <div><b>是否添加微信</b>${v("wechat", row.wechatId)}</div>
+        ${row.followResult === "opportunity" ? `
+        <div><b>商机阶段</b>${v("oppStages", row.oppStageId)}</div>
+        <div><b>商机等级</b>${row.oppLevelId || "—"}</div>
+        <div><b>意向商品</b>${v("products", row.productId)}</div>` : ""}`;
+      document.getElementById("deMask").classList.add("show");
+    };
+
+    const openConvert = (id) => {
+      currentId = id;
+      const row = leads.find((x) => x.id === id);
+      o_name.value = row.name || "";
+      o_phone.value = row.phone || "";
+      o_region.value = row.regionId || "";
+      o_industry.value = row.industryId || "";
+      o_source.value = row.sourceId || "";
+      o_company.value = row.companyTypeId || "";
+      o_result.value = "opportunity";
+      o_cate.value = row.categoryId || "";
+      o_wechat.value = row.wechatId || "";
+      o_stage.value = "intent";
+      o_stage.disabled = true;
+      o_level.value = row.oppLevelId || "A";
+      o_product.value = row.productId || "";
+      document.getElementById("opMask").classList.add("show");
+    };
+    document.getElementById("opOk").addEventListener("click", () => {
+      if (!o_product.value) { toast("请选择意向商品"); return; }
+      const row = leads.find((x) => x.id === currentId);
+      const first = row.followResult !== "opportunity";
+      row.followResult = "opportunity";
+      row.oppStageId = "intent";
+      row.oppLevelId = o_level.value;
+      row.productId = o_product.value;
+      row.contact = row.contact || row.name;
+      row.lastFollowAt = nowText();
+      row.logs.unshift({
+        at: row.lastFollowAt,
+        type: "follow",
+        status: "opportunity",
+        user: CRM.person(row.ownerId)?.name || "用户",
+        text: `转商机：意向商机 / 等级${row.oppLevelId} / ${CRM.dictName("products", row.productId)}`
+      });
+      if (first) CRM.bumpMetric(row.ownerId, "oppActual", 1);
+      CRM.saveLeads(leads);
+      CRM.upsertOppFromLead(row);
+      document.getElementById("opMask").classList.remove("show");
+      toast(first ? "已转商机，并计入营销目标商机实际（个）" : "商机信息已更新");
+      render();
+    });
+
+    tbody.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]");
+      if (!b) return;
+      if (b.dataset.act === "view") openLead("view", b.dataset.id);
+      else if (b.dataset.act === "follow") openFollow(b.dataset.id);
+      else if (b.dataset.act === "assign") openAssign(b.dataset.id);
+      else if (b.dataset.act === "detail") openDetail(b.dataset.id);
+      else if (b.dataset.act === "convert") openConvert(b.dataset.id);
+    });
+
+    if (location.search.indexOf("add=1") >= 0) openLead("add");
+    if (location.search.indexOf("follow=1") >= 0) {
+      const row = leads.find((l) => l.followResult === "following") || leads[0];
+      if (row) openFollow(row.id);
+    }
+    render();
+  </script>
+</body>
+</html>
