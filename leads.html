@@ -8,12 +8,10 @@
     :root {
       --sidebar: #2b3343;
       --sidebar-hover: rgba(255, 255, 255, 0.08);
-      --sidebar-active: rgba(255, 255, 255, 0.14);
       --primary: #1890ff;
       --bg: #f0f2f5;
       --text: #262626;
       --muted: #8c8c8c;
-      --border: #f0f0f0;
       --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px rgba(0, 0, 0, 0.04);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,7 +21,7 @@
       color: var(--text);
       background: var(--bg);
     }
-    button, input, select { font-family: inherit; }
+    button, input, select, textarea { font-family: inherit; }
     button { cursor: pointer; }
 
     .app { display: flex; min-height: 100vh; }
@@ -41,8 +39,7 @@
     .nav-item, .nav-group-btn {
       width: 100%; display: flex; align-items: center; gap: 10px; border: 0;
       background: transparent; color: #e8eaed; font-size: 14px; height: 40px;
-      padding: 0 12px; border-radius: 4px;       text-align: left;
-      text-decoration: none;
+      padding: 0 12px; border-radius: 4px; text-align: left; text-decoration: none;
     }
     .nav-item:hover, .nav-group-btn:hover { background: var(--sidebar-hover); }
     .nav-item.active { background: #1890ff; color: #fff; }
@@ -76,67 +73,53 @@
     }
 
     .content { padding: 16px 18px 28px; }
-    .page-card { background: #fff; border-radius: 8px; box-shadow: var(--card-shadow); padding: 16px; }
+    .page-card { background: #fff; border-radius: 8px; box-shadow: var(--card-shadow); padding: 16px; margin-bottom: 12px; }
 
-    .metric-row {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px;
-    }
-    .metric {
-      background: #fff; border-radius: 8px; padding: 16px 18px 14px;
-      box-shadow: var(--card-shadow); border-top: 3px solid #1890ff;
-    }
-    .metric .m-label { font-size: 13px; color: #8c8c8c; }
-    .metric .m-value { margin-top: 10px; font-size: 26px; font-weight: 700; color: #262626; }
-    .metric.c1 { border-top-color: #69c0ff; background: linear-gradient(180deg, #e6f7ff, #fff 42%); }
-    .metric.c2 { border-top-color: #95de64; background: linear-gradient(180deg, #f6ffed, #fff 42%); }
-    .metric.c3 { border-top-color: #40a9ff; background: linear-gradient(180deg, #e6f4ff, #fff 42%); }
-    .metric.c4 { border-top-color: #ffc069; background: linear-gradient(180deg, #fff7e6, #fff 42%); }
-    .metric.c5 { border-top-color: #f759ab; background: linear-gradient(180deg, #fff0f6, #fff 42%); }
-
-    .filter-bar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
-    }
+    .filter-bar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .f-item { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
+    .f-item.grow { flex: 1; min-width: 180px; }
+    .f-item label { font-size: 13px; color: #595959; }
     .select, .input {
       height: 32px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 10px;
-      font-size: 13px; color: #595959; background: #fff; min-width: 120px;
+      font-size: 13px; color: #595959; background: #fff; width: 100%; min-width: 0;
     }
     .select { appearance: none; padding-right: 24px;
       background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23bfbfbf'/%3E%3C/svg%3E") no-repeat right 8px center;
     }
-    .btn { height: 32px; padding: 0 14px; border-radius: 4px; font-size: 13px; border: 1px solid transparent; }
+    .btn { height: 32px; padding: 0 14px; border-radius: 4px; font-size: 13px; border: 1px solid transparent; white-space: nowrap; }
     .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
     .btn-primary:hover { background: #40a9ff; }
     .btn-ghost { background: #fff; color: #595959; border-color: #d9d9d9; }
     .btn-ghost:hover { color: var(--primary); border-color: var(--primary); }
-    .spacer { flex: 1; }
+    .toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
     th { background: #fafafa; color: #8c8c8c; font-weight: 600; }
     tbody tr:hover { background: #fafafa; }
-    .link { border: 0; background: transparent; color: var(--primary); font-size: 13px; padding: 0; }
+    .link { border: 0; background: transparent; color: var(--primary); font-size: 13px; padding: 0; margin-right: 8px; }
     .link:hover { text-decoration: underline; }
-    .rate { color: var(--primary); font-weight: 600; }
+    .ops { display: flex; flex-wrap: wrap; gap: 2px 0; }
+
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 2px; font-size: 12px; line-height: 20px; }
+    .s-wait { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+    .s-ing { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .s-done { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+    .s-dead { background: #fafafa; color: #8c8c8c; border: 1px solid #d9d9d9; }
 
     .table-foot {
-      display: flex; align-items: center; justify-content: space-between; margin-top: 14px; gap: 12px;
+      display: flex; align-items: center; justify-content: flex-end; margin-top: 14px; gap: 10px; flex-wrap: wrap;
+      color: #8c8c8c; font-size: 13px;
     }
-    .pager { display: flex; align-items: center; gap: 8px; color: #8c8c8c; font-size: 13px; }
-    .pager button {
-      width: 28px; height: 28px; border: 1px solid #d9d9d9; background: #fff; border-radius: 4px; color: #595959;
+    .pager { display: flex; align-items: center; gap: 6px; }
+    .pager button, .page-num {
+      min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid #d9d9d9; background: #fff; border-radius: 4px; color: #595959;
     }
+    .page-num.active { background: var(--primary); border-color: var(--primary); color: #fff; }
     .pager button:disabled { opacity: .4; cursor: default; }
-    .add-wrap { position: relative; }
-    .add-menu {
-      display: none; position: absolute; right: 0; bottom: 36px; background: #fff;
-      border: 1px solid #f0f0f0; border-radius: 6px; box-shadow: 0 6px 16px rgba(0,0,0,.12); min-width: 140px; z-index: 5;
-    }
-    .add-menu.open { display: block; }
-    .add-menu button {
-      width: 100%; border: 0; background: transparent; text-align: left; padding: 10px 14px; font-size: 13px;
-    }
-    .add-menu button:hover { background: #e6f7ff; color: var(--primary); }
+    .jump { display: flex; align-items: center; gap: 6px; }
+    .jump input { width: 48px; height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; }
 
     .mask {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40;
@@ -144,72 +127,34 @@
     }
     .mask.show { display: flex; }
     .modal {
-      width: 560px; max-width: 100%; background: #fff; border-radius: 8px; overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      width: 720px; max-width: 100%; max-height: calc(100vh - 48px); overflow: auto;
+      background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
     }
-    .modal.wide { width: 720px; }
+    .modal.sm { width: 480px; }
     .modal-head {
       height: 48px; background: #1890ff; color: #fff; display: flex; align-items: center;
-      justify-content: space-between; padding: 0 16px; font-size: 15px; font-weight: 600;
+      justify-content: space-between; padding: 0 16px; font-size: 15px; font-weight: 600; position: sticky; top: 0;
     }
     .modal-close { border: 0; background: transparent; color: #fff; font-size: 20px; line-height: 1; width: 28px; }
     .modal-body { padding: 18px 20px 8px; }
     .form-row { display: flex; gap: 12px; margin-bottom: 14px; }
-    .field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .field label { font-size: 13px; color: #595959; }
     .field .req::before { content: "* "; color: #ff4d4f; }
-    .section-label { font-size: 14px; font-weight: 600; margin: 6px 0 12px; }
-    .target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .ops { display: flex; gap: 10px; }
-    textarea.input {
-      height: auto; min-height: 88px; padding: 8px 10px; resize: vertical; min-width: 0; width: 100%;
+    .sec {
+      display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+      margin: 4px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;
     }
-    .drop {
-      position: relative;
+    .num {
+      width: 20px; height: 20px; border-radius: 50%; background: #1890ff; color: #fff;
+      font-size: 12px; display: grid; place-items: center; font-weight: 600;
     }
-    .drop-btn {
-      width: 100%; height: 32px; border: 1px solid #d9d9d9; border-radius: 4px;
-      background: #fff; text-align: left; padding: 0 28px 0 10px; font-size: 13px; color: #595959;
-      position: relative;
+    textarea.input { height: auto; min-height: 80px; padding: 8px 10px; resize: vertical; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 0 16px; }
+    .alert {
+      background: #fff7e6; border: 1px solid #ffd591; border-left: 3px solid #fa8c16;
+      color: #ad6800; font-size: 13px; line-height: 1.6; padding: 8px 12px; border-radius: 4px; margin-bottom: 14px;
     }
-    .drop-btn::after {
-      content: ""; position: absolute; right: 10px; top: 13px;
-      border: 4px solid transparent; border-top-color: #bfbfbf;
-    }
-    .drop-list {
-      display: none; position: absolute; left: 0; right: 0; top: 34px; z-index: 8;
-      background: #fff; border: 1px solid #e8e8e8; border-radius: 4px;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12); overflow: hidden;
-    }
-    .drop.open .drop-list { display: block; }
-    .drop-list button {
-      width: 100%; border: 0; background: #fff; text-align: left; padding: 8px 12px; font-size: 13px;
-    }
-    .drop-list button:hover, .drop-list button.active { background: #e6f7ff; color: var(--primary); }
-
-    .timeline { padding: 4px 4px 8px 8px; max-height: 280px; overflow: auto; }
-    .tl-item { position: relative; padding: 0 0 18px 22px; }
-    .tl-item::before {
-      content: ""; position: absolute; left: 5px; top: 8px; bottom: 0; width: 2px; background: #f0f0f0;
-    }
-    .tl-item:last-child::before { display: none; }
-    .tl-dot {
-      position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%;
-      background: #fff; border: 2px solid var(--primary);
-    }
-    .tl-date { font-size: 12px; color: #8c8c8c; margin-bottom: 4px; }
-    .tl-meta { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; }
-    .tl-tag { color: var(--primary); }
-    .tl-note {
-      background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; padding: 8px 10px;
-      font-size: 13px; color: #595959; line-height: 1.6;
-    }
-    .summary-box {
-      margin-top: 8px; border-top: 1px solid #f0f0f0; padding-top: 12px;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; font-size: 13px;
-    }
-    .summary-box .k { color: #8c8c8c; margin-right: 8px; }
 
     .toast {
       position: fixed; top: 72px; left: 50%; transform: translateX(-50%) translateY(-12px);
@@ -217,10 +162,6 @@
       opacity: 0; pointer-events: none; transition: .2s; z-index: 60;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    @media (max-width: 1100px) {
-      .metric-row { grid-template-columns: 1fr 1fr; }
-    }
   </style>
 </head>
 <body>
@@ -241,8 +182,8 @@
           <div class="nav-sub">
             <a class="nav-item" data-page="marketing" href="marketing.html">营销目标</a>
             <a class="nav-item active" data-page="leads" href="leads.html">线索管理</a>
-            <button class="nav-item" data-page="opportunity" type="button">商机管理</button>
-            <button class="nav-item" data-page="contract" type="button">合同管理</button>
+            <a class="nav-item" data-page="opportunity" href="opportunities.html">商机管理</a>
+            <a class="nav-item" data-page="contract" href="contracts.html">合同管理</a>
             <button class="nav-item" data-page="customer" type="button">客户管理</button>
             <button class="nav-item" data-page="performance" type="button">销售业绩</button>
           </div>
@@ -306,170 +247,213 @@
       </header>
 
       <main class="content">
-        <div class="metric-row">
-          <div class="metric c1"><div class="m-label">公海线索数</div><div class="m-value">86</div></div>
-          <div class="metric c2"><div class="m-label">私海线索数</div><div class="m-value">124</div></div>
-          <div class="metric c3"><div class="m-label">有效线索数</div><div class="m-value">58</div></div>
-          <div class="metric c4"><div class="m-label">线索转化率</div><div class="m-value">27.6%</div></div>
-          <div class="metric c5"><div class="m-label">新增线索数</div><div class="m-value">32</div></div>
-        </div>
-
         <section class="page-card">
           <div class="filter-bar">
-            <select class="select" id="fYear" aria-label="年份">
-              <option value="">年份</option>
-              <option selected>2026</option>
-              <option>2025</option>
-              <option>2024</option>
-            </select>
-            <select class="select" id="fMonth" aria-label="月份">
-              <option value="">月份</option>
-              <option>1月</option><option>2月</option><option>3月</option><option>4月</option>
-              <option>5月</option><option>6月</option><option>7月</option><option selected>8月</option>
-              <option>9月</option><option>10月</option><option>11月</option><option>12月</option>
-            </select>
-            <select class="select" id="fDept" aria-label="部门">
-              <option value="">部门</option>
-              <option>销售一部</option>
-              <option>销售二部</option>
-              <option>网销一组</option>
-              <option>常熟组</option>
-            </select>
-            <select class="select" id="fPerson" aria-label="业务员">
-              <option value="">业务员</option>
-            </select>
-            <div class="spacer"></div>
-            <button class="btn btn-primary" id="btnQuery" type="button">搜索</button>
+            <div class="f-item">
+              <label>业务线</label>
+              <select class="select" id="fLine">
+                <option value="">请选择</option>
+                <option>代账服务</option>
+                <option>代理注册</option>
+                <option>税筹服务</option>
+              </select>
+            </div>
+            <div class="f-item">
+              <label>线索状态</label>
+              <select class="select" id="fStatus">
+                <option value="">请选择</option>
+                <option>待跟进</option>
+                <option>跟进中</option>
+                <option>已转化</option>
+                <option>无效</option>
+              </select>
+            </div>
+            <div class="f-item">
+              <label>手机号</label>
+              <input class="input" id="fPhone" placeholder="请输入">
+            </div>
+            <div class="f-item grow">
+              <label>关键字</label>
+              <input class="input" id="fKey" placeholder="姓名/公司">
+            </div>
+            <button class="btn btn-primary" id="btnQuery" type="button">查询</button>
+            <button class="btn btn-ghost" id="btnReset" type="button">重置</button>
           </div>
+        </section>
 
+        <section class="page-card">
+          <div class="toolbar">
+            <button class="btn btn-primary" id="btnNew" type="button">新建</button>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>部门</th>
-                  <th>业务员</th>
-                  <th>公海线索数</th>
-                  <th>私海线索数</th>
-                  <th>有效线索数</th>
-                  <th>线索转化率</th>
-                  <th>新增线索数</th>
+                  <th>线索ID</th>
+                  <th>公司名称</th>
+                  <th>联系人</th>
+                  <th>手机号</th>
+                  <th>行业</th>
+                  <th>线索来源</th>
+                  <th>线索状态</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
                   <th>操作</th>
                 </tr>
               </thead>
               <tbody id="tableBody"></tbody>
             </table>
           </div>
-
           <div class="table-foot">
-            <div class="pager">
-              <button type="button" id="prevPage" aria-label="上一页">‹</button>
-              <span id="pageInfo">1/10</span>
-              <button type="button" id="nextPage" aria-label="下一页">›</button>
+            <span id="totalText">共 0 条</span>
+            <div class="pager" id="pager"></div>
+            <select class="select" id="pageSize" style="width:96px;">
+              <option value="10">10 条/页</option>
+              <option value="20">20 条/页</option>
+            </select>
+            <div class="jump">
+              跳至 <input id="jumpPage" type="number" min="1"> 页
+              <button class="btn btn-ghost" id="btnJump" type="button" style="height:28px;">确定</button>
             </div>
-            <button class="btn btn-primary" id="btnAdd" type="button">新增</button>
           </div>
         </section>
       </main>
     </div>
   </div>
 
-  <div class="mask" id="maskAdd">
-    <div class="modal" role="dialog" aria-labelledby="addTitle">
+  <div class="mask" id="maskLead">
+    <div class="modal" role="dialog">
       <div class="modal-head">
-        <span id="addTitle">新增营销目标</span>
-        <button class="modal-close" type="button" data-close="maskAdd">×</button>
+        <span id="leadTitle">新建线索</span>
+        <button class="modal-close" type="button" data-close="maskLead">×</button>
       </div>
-      <form class="modal-body" id="formAdd">
+      <form class="modal-body" id="formLead">
+        <input type="hidden" id="lId">
+        <div class="sec"><span class="num">1</span>基础信息</div>
         <div class="form-row">
           <div class="field">
-            <label class="req">年份</label>
-            <select class="select" id="aYear" required>
-              <option>2026</option><option>2025</option><option>2024</option>
-            </select>
+            <label class="req">线索名称</label>
+            <input class="input" id="lName" required>
           </div>
           <div class="field">
-            <label class="req">月份</label>
-            <select class="select" id="aMonth" required>
-              <option>1月</option><option>2月</option><option>3月</option><option>4月</option>
-              <option>5月</option><option>6月</option><option>7月</option><option>8月</option>
-              <option>9月</option><option>10月</option><option>11月</option><option>12月</option>
+            <label class="req">线索来源</label>
+            <select class="select" id="lSource" required>
+              <option>广告投放</option>
+              <option>线下活动</option>
+              <option>转介绍</option>
+              <option>官网留言</option>
             </select>
           </div>
         </div>
         <div class="form-row">
           <div class="field">
-            <label class="req">人员</label>
-            <select class="select" id="aPerson" required></select>
+            <label>行业</label>
+            <select class="select" id="lIndustry">
+              <option>互联网</option>
+              <option>制造业</option>
+              <option>贸易</option>
+              <option>服务业</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>所属业务</label>
+            <select class="select" id="lLine">
+              <option>代账服务</option>
+              <option>代理注册</option>
+              <option>税筹服务</option>
+            </select>
           </div>
         </div>
-        <div class="section-label">目标设定</div>
-        <div class="target-grid">
-          <div class="field"><label>公海线索数</label><input class="input" id="aPub" type="number" min="0"></div>
-          <div class="field"><label>私海线索数</label><input class="input" id="aPri" type="number" min="0"></div>
-          <div class="field"><label>有效线索数</label><input class="input" id="aValid" type="number" min="0"></div>
-          <div class="field"><label>新增线索数</label><input class="input" id="aNew" type="number" min="0"></div>
+        <div class="sec"><span class="num">2</span>联系人信息</div>
+        <div class="form-row">
+          <div class="field">
+            <label class="req">联系人姓名</label>
+            <input class="input" id="lContact" required>
+          </div>
+          <div class="field">
+            <label class="req">手机号</label>
+            <input class="input" id="lPhone" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>微信号</label>
+            <input class="input" id="lWechat">
+          </div>
+          <div class="field">
+            <label>邮箱</label>
+            <input class="input" id="lEmail">
+          </div>
+          <div class="field">
+            <label>职位</label>
+            <input class="input" id="lJob">
+          </div>
+        </div>
+        <div class="sec"><span class="num">3</span>地址信息</div>
+        <div class="form-row">
+          <div class="field">
+            <label>省</label>
+            <select class="select" id="lProv">
+              <option>浙江</option><option>江苏</option><option>广东</option><option>湖北</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>市</label>
+            <input class="input" id="lCity" placeholder="请输入">
+          </div>
+          <div class="field">
+            <label>区</label>
+            <input class="input" id="lDist" placeholder="请输入">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>详细地址</label>
+            <input class="input" id="lAddr" placeholder="请输入详细地址">
+          </div>
+        </div>
+        <div class="sec"><span class="num">4</span>备注信息</div>
+        <div class="form-row">
+          <div class="field">
+            <label>备注</label>
+            <textarea class="input" id="lNote" placeholder="请输入备注"></textarea>
+          </div>
         </div>
         <div class="modal-foot">
-          <button class="btn btn-ghost" type="button" data-close="maskAdd">取消</button>
-          <button class="btn btn-primary" type="submit">确认新增</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="mask" id="maskDetail">
-    <div class="modal wide" role="dialog" aria-labelledby="detailTitle">
-      <div class="modal-head">
-        <span id="detailTitle">详情</span>
-        <button class="modal-close" type="button" data-close="maskDetail">×</button>
-      </div>
-      <form class="modal-body" id="formDetail">
-        <div class="form-row">
-          <div class="field">
-            <label>年份</label>
-            <select class="select" id="dtYear">
-              <option>2026</option><option>2025</option><option>2024</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>部门</label>
-            <input class="input" id="dtDept" readonly>
-          </div>
-          <div class="field">
-            <label>人员</label>
-            <input class="input" id="dtPerson" readonly>
-          </div>
-        </div>
-        <div class="section-label">新增线索数</div>
-        <div class="month-grid" id="monthGrid"></div>
-        <div class="modal-foot">
-          <button class="btn btn-ghost" type="button" data-close="maskDetail">取消</button>
-          <button class="btn btn-primary" type="submit">确定</button>
+          <button class="btn btn-ghost" type="button" data-close="maskLead">取消</button>
+          <button class="btn btn-primary" type="submit" id="leadSave">保存</button>
         </div>
       </form>
     </div>
   </div>
 
   <div class="mask" id="maskFollow">
-    <div class="modal" role="dialog" aria-labelledby="followTitle">
+    <div class="modal sm" role="dialog">
       <div class="modal-head">
-        <span id="followTitle">添加跟进</span>
+        <span>添加跟进</span>
         <button class="modal-close" type="button" data-close="maskFollow">×</button>
       </div>
       <form class="modal-body" id="formFollow">
         <input type="hidden" id="fRowId">
+        <div class="alert">特别提示：请及时记录跟进内容，便于后续协作。</div>
         <div class="form-row">
           <div class="field">
             <label class="req">跟进方式</label>
-            <div class="drop" id="wayDrop">
-              <input type="hidden" id="fWay" value="通话中">
-              <button class="drop-btn" id="wayBtn" type="button">通话中</button>
-              <div class="drop-list">
-                <button type="button" data-val="通话中">通话中</button>
-                <button type="button" data-val="拜访中">拜访中</button>
-                <button type="button" data-val="其它">其它</button>
-              </div>
-            </div>
+            <select class="select" id="fWay" required>
+              <option>电话</option>
+              <option>拜访</option>
+              <option>微信</option>
+              <option>邮件</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="req">跟进状态</label>
+            <select class="select" id="followStatus" required>
+              <option>待跟进</option>
+              <option>跟进中</option>
+              <option>已转化</option>
+              <option>无效</option>
+            </select>
           </div>
         </div>
         <div class="form-row">
@@ -478,7 +462,7 @@
             <input class="input" id="fTime" type="datetime-local" required>
           </div>
           <div class="field">
-            <label>下次跟进</label>
+            <label>下次跟进时间</label>
             <input class="input" id="fNext" type="datetime-local">
           </div>
         </div>
@@ -490,110 +474,70 @@
         </div>
         <div class="modal-foot">
           <button class="btn btn-ghost" type="button" data-close="maskFollow">取消</button>
-          <button class="btn btn-primary" type="submit">确认</button>
+          <button class="btn btn-primary" type="submit">提交保存</button>
         </div>
       </form>
     </div>
   </div>
 
-  <div class="mask" id="maskLog">
-    <div class="modal" role="dialog" aria-labelledby="logTitle">
+  <div class="mask" id="maskAssign">
+    <div class="modal sm" role="dialog">
       <div class="modal-head">
-        <span id="logTitle">查看跟进记录</span>
-        <button class="modal-close" type="button" data-close="maskLog">×</button>
+        <span>指派</span>
+        <button class="modal-close" type="button" data-close="maskAssign">×</button>
       </div>
-      <div class="modal-body">
-        <div class="timeline" id="logTimeline"></div>
-        <div class="summary-box">
-          <div><span class="k">客户意向</span><span id="logIntent">有意向</span></div>
-          <div><span class="k">下步计划</span><span id="logPlan">继续电话跟进</span></div>
-          <div><span class="k">其它</span><span id="logOther">—</span></div>
+      <form class="modal-body" id="formAssign">
+        <input type="hidden" id="aId">
+        <div class="form-row">
+          <div class="field">
+            <label>当前线索</label>
+            <input class="input" id="aName" readonly>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label class="req">指派给</label>
+            <select class="select" id="aPerson" required>
+              <option>张三</option>
+              <option>李四</option>
+              <option>吴芳</option>
+              <option>陈海</option>
+              <option>杨文</option>
+            </select>
+          </div>
         </div>
         <div class="modal-foot">
-          <button class="btn btn-ghost" type="button" data-close="maskLog">取消</button>
-          <button class="btn btn-primary" type="button" id="logAdd">添加跟进</button>
+          <button class="btn btn-ghost" type="button" data-close="maskAssign">取消</button>
+          <button class="btn btn-primary" type="submit">确定</button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    const PEOPLE = ["张三", "李四", "吴芳", "陈海", "杨文", "李承", "赵思源"];
-    const MONTHS = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
-    const personSel = document.getElementById("fPerson");
-    const aPerson = document.getElementById("aPerson");
-    PEOPLE.forEach((n) => {
-      personSel.insertAdjacentHTML("beforeend", `<option>${n}</option>`);
-      aPerson.insertAdjacentHTML("beforeend", `<option>${n}</option>`);
-    });
-    document.getElementById("monthGrid").innerHTML = MONTHS.map((m, i) => `
-      <div class="field"><label>${m}</label><input class="input" data-m="${i}" type="number" min="0"></div>
-    `).join("");
+    const PEOPLE = ["张三", "李四", "吴芳", "陈海", "杨文"];
+    let page = 1;
+    let pageSize = 10;
+    let nextId = 13;
+    let currentId = "";
 
     let rows = [
-      { id: 1, name: "张三", dept: "销售一部", month: "8月", year: "2026", pub: 12, pri: 18, valid: 9, conv: "28%", neu: 6, months: [2,3,2,4,3,5,4,6,3,2,1,2] },
-      { id: 2, name: "李四", dept: "销售二部", month: "8月", year: "2026", pub: 10, pri: 16, valid: 8, conv: "24%", neu: 5, months: [1,2,3,3,4,4,5,5,3,2,2,1] },
-      { id: 3, name: "吴芳", dept: "网销一组", month: "8月", year: "2026", pub: 20, pri: 28, valid: 14, conv: "32%", neu: 8, months: [3,4,4,5,6,6,5,8,4,3,2,3] },
-      { id: 4, name: "陈海", dept: "网销一组", month: "8月", year: "2026", pub: 16, pri: 22, valid: 11, conv: "30%", neu: 7, months: [2,3,4,4,5,5,6,7,4,3,2,2] },
-      { id: 5, name: "杨文", dept: "常熟组", month: "8月", year: "2026", pub: 14, pri: 20, valid: 8, conv: "22%", neu: 4, months: [1,2,2,3,3,4,4,4,3,2,1,1] },
-      { id: 6, name: "李承", dept: "销售一部", month: "8月", year: "2026", pub: 8, pri: 12, valid: 5, conv: "18%", neu: 2, months: [1,1,1,2,2,2,3,2,1,1,1,1] },
-      { id: 7, name: "赵思源", dept: "常熟组", month: "8月", year: "2026", pub: 6, pri: 8, valid: 3, conv: "16%", neu: 0, months: [0,1,1,1,1,1,2,0,1,0,1,0] },
+      { id: "XS202608001", name: "杭州华迈科技", contact: "王亮", phone: "17815761902", industry: "互联网", source: "广告投放", status: "跟进中", owner: "张三", created: "2026-08-12 09:12", line: "代账服务", wechat: "wl178", email: "wl@test.com", job: "经理", prov: "浙江", city: "杭州", dist: "滨江区", addr: "滨江区网商路", note: "" },
+      { id: "XS202608002", name: "无锡联创科技", contact: "周强", phone: "13800138001", industry: "制造业", source: "线下活动", status: "待跟进", owner: "李四", created: "2026-08-11 14:20", line: "代理注册", wechat: "", email: "", job: "负责人", prov: "江苏", city: "无锡", dist: "新吴区", addr: "", note: "" },
+      { id: "XS202608003", name: "深圳市某某测试商贸", contact: "许清", phone: "15800332222", industry: "贸易", source: "转介绍", status: "已转化", owner: "吴芳", created: "2026-08-10 11:05", line: "税筹服务", wechat: "xq158", email: "xq@test.com", job: "财务", prov: "广东", city: "深圳", dist: "南山区", addr: "", note: "" },
+      { id: "XS202608004", name: "正略科技创新", contact: "李明", phone: "17816781902", industry: "互联网", source: "官网留言", status: "跟进中", owner: "陈海", created: "2026-08-09 16:40", line: "代账服务", wechat: "", email: "", job: "", prov: "浙江", city: "杭州", dist: "西湖区", addr: "", note: "" },
+      { id: "XS202608005", name: "冥想致远科技", contact: "赵敏", phone: "13600003333", industry: "服务业", source: "广告投放", status: "待跟进", owner: "杨文", created: "2026-08-08 09:30", line: "代理注册", wechat: "", email: "", job: "", prov: "浙江", city: "杭州", dist: "余杭区", addr: "", note: "" },
+      { id: "XS202608006", name: "杭州捷众科技", contact: "吴芳", phone: "13900001111", industry: "互联网", source: "线下活动", status: "跟进中", owner: "张三", created: "2026-08-07 10:18", line: "代账服务", wechat: "", email: "", job: "", prov: "浙江", city: "杭州", dist: "拱墅区", addr: "", note: "" },
+      { id: "XS202608007", name: "达明贸易", contact: "陈海", phone: "13700002222", industry: "贸易", source: "转介绍", status: "无效", owner: "李四", created: "2026-08-06 15:02", line: "税筹服务", wechat: "", email: "", job: "", prov: "湖北", city: "武汉", dist: "汉口", addr: "", note: "" },
+      { id: "XS202608008", name: "帅萨出品科技", contact: "杨文", phone: "13500004444", industry: "互联网", source: "官网留言", status: "待跟进", owner: "吴芳", created: "2026-08-05 11:22", line: "代账服务", wechat: "", email: "", job: "", prov: "广东", city: "深圳", dist: "福田区", addr: "", note: "" },
+      { id: "XS202608009", name: "商会", contact: "李经理", phone: "17851819000", industry: "服务业", source: "广告投放", status: "跟进中", owner: "陈海", created: "2026-08-04 09:00", line: "代账服务", wechat: "", email: "", job: "经理", prov: "湖北", city: "天门", dist: "", addr: "", note: "123123" },
+      { id: "XS202608010", name: "海鸥", contact: "张三", phone: "17516781802", industry: "制造业", source: "转介绍", status: "待跟进", owner: "杨文", created: "2026-08-03 13:45", line: "代理注册", wechat: "", email: "", job: "", prov: "湖北", city: "天门", dist: "", addr: "", note: "" },
+      { id: "XS202608011", name: "广州某某贸易有限公司", contact: "李四", phone: "13800138000", industry: "贸易", source: "线下活动", status: "已转化", owner: "张三", created: "2026-08-02 08:50", line: "税筹服务", wechat: "", email: "", job: "", prov: "广东", city: "广州", dist: "天河区", addr: "", note: "" },
+      { id: "XS202608012", name: "北京大发科技有限公司", contact: "王亮", phone: "13911223344", industry: "互联网", source: "广告投放", status: "跟进中", owner: "李四", created: "2026-08-01 17:10", line: "代账服务", wechat: "", email: "", job: "", prov: "江苏", city: "无锡", dist: "", addr: "", note: "" }
     ];
-    let nextId = 8;
-    const follows = {
-      1: [
-        { date: "2026-08-12", way: "通话中", person: "张三", content: "电话沟通产品方案，客户反馈价格需再评估。" },
-        { date: "2026-08-05", way: "拜访中", person: "张三", content: "上门拜访，介绍代账套餐，约定下周再联系。" }
-      ],
-      3: [
-        { date: "2026-08-14", way: "通话中", person: "吴芳", content: "客户确认有办理意向，需补充资料。" }
-      ]
-    };
-    let currentFollowId = "";
     let filtered = rows.slice();
-    let page = 1;
-    const pageSize = 5;
-
-    function renderTable() {
-      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-      if (page > totalPages) page = totalPages;
-      const start = (page - 1) * pageSize;
-      const slice = filtered.slice(start, start + pageSize);
-      document.getElementById("tableBody").innerHTML = slice.map((r) => `
-        <tr>
-          <td>${r.dept}</td>
-          <td>${r.name}</td>
-          <td>${r.pub}</td>
-          <td>${r.pri}</td>
-          <td>${r.valid}</td>
-          <td class="rate">${r.conv}</td>
-          <td>${r.neu}</td>
-          <td>
-            <span class="ops">
-              <button class="link" type="button" data-follow="${r.id}">添加跟进</button>
-              <button class="link" type="button" data-log="${r.id}">查看跟进记录</button>
-              <button class="link" type="button" data-detail="${r.id}">详情</button>
-            </span>
-          </td>
-        </tr>
-      `).join("") || `<tr><td colspan="8" style="text-align:center;color:#8c8c8c;">暂无数据</td></tr>`;
-      document.getElementById("pageInfo").textContent = page + "/" + totalPages;
-      document.getElementById("prevPage").disabled = page <= 1;
-      document.getElementById("nextPage").disabled = page >= totalPages;
-    }
-
-    function applyFilter() {
-      const y = document.getElementById("fYear").value;
-      const m = document.getElementById("fMonth").value;
-      const d = document.getElementById("fDept").value;
-      const p = document.getElementById("fPerson").value;
-      filtered = rows.filter((r) => (!y || r.year === y) && (!m || r.month === m) && (!d || r.dept === d) && (!p || r.name === p));
-      page = 1;
-      renderTable();
-      toast("搜索完成");
-    }
 
     const toastEl = document.getElementById("toast");
     let toastTimer;
@@ -603,164 +547,230 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1600);
     }
-
-    document.getElementById("btnQuery").onclick = applyFilter;
-    document.getElementById("prevPage").onclick = () => { if (page > 1) { page--; renderTable(); } };
-    document.getElementById("nextPage").onclick = () => {
-      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-      if (page < totalPages) { page++; renderTable(); }
-    };
-
-    document.getElementById("tableBody").addEventListener("click", (e) => {
-      const followBtn = e.target.closest("[data-follow]");
-      const logBtn = e.target.closest("[data-log]");
-      const detailBtn = e.target.closest("[data-detail]");
-      if (followBtn) {
-        openFollow(followBtn.dataset.follow);
-        return;
-      }
-      if (logBtn) {
-        openLog(logBtn.dataset.log);
-        return;
-      }
-      if (!detailBtn) return;
-      const row = rows.find((r) => String(r.id) === detailBtn.dataset.detail);
-      if (!row) return;
-      document.getElementById("dtYear").value = row.year;
-      document.getElementById("dtDept").value = row.dept;
-      document.getElementById("dtPerson").value = row.name;
-      document.querySelectorAll("#monthGrid [data-m]").forEach((inp) => {
-        inp.value = row.months[Number(inp.dataset.m)] || 0;
-      });
-      openMask("maskDetail");
-    });
-
+    function openMask(id) { document.getElementById(id).classList.add("show"); }
+    function closeMask(id) { document.getElementById(id).classList.remove("show"); }
     function pad(n) { return String(n).padStart(2, "0"); }
     function nowLocal() {
       const d = new Date();
       return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
     }
-    function fmtTime(v) {
-      if (!v) return "";
-      return v.replace("T", " ");
+    function nowText() {
+      return nowLocal().replace("T", " ");
+    }
+    function statusBadge(s) {
+      const map = { 待跟进: "s-wait", 跟进中: "s-ing", 已转化: "s-done", 无效: "s-dead" };
+      return `<span class="badge ${map[s] || "s-dead"}">${s}</span>`;
     }
 
-    const wayDrop = document.getElementById("wayDrop");
-    const wayBtn = document.getElementById("wayBtn");
-    wayBtn.onclick = (e) => {
-      e.stopPropagation();
-      wayDrop.classList.toggle("open");
-    };
-    wayDrop.querySelector(".drop-list").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-val]");
-      if (!b) return;
-      document.getElementById("fWay").value = b.dataset.val;
-      wayBtn.textContent = b.dataset.val;
-      wayDrop.querySelectorAll("[data-val]").forEach((x) => x.classList.toggle("active", x === b));
-      wayDrop.classList.remove("open");
-    });
-    document.addEventListener("click", () => wayDrop.classList.remove("open"));
+    function applyFilter(showToast) {
+      const line = document.getElementById("fLine").value;
+      const status = document.getElementById("fStatus").value;
+      const phone = document.getElementById("fPhone").value.trim();
+      const key = document.getElementById("fKey").value.trim();
+      filtered = rows.filter((r) =>
+        (!line || r.line === line) &&
+        (!status || r.status === status) &&
+        (!phone || r.phone.includes(phone)) &&
+        (!key || r.name.includes(key) || r.contact.includes(key) || r.id.includes(key))
+      );
+      page = 1;
+      renderTable();
+      if (showToast) toast("查询完成");
+    }
+
+    function renderTable() {
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      if (page > totalPages) page = totalPages;
+      const start = (page - 1) * pageSize;
+      const slice = filtered.slice(start, start + pageSize);
+      document.getElementById("tableBody").innerHTML = slice.map((r) => `
+        <tr>
+          <td><button class="link" type="button" data-detail="${r.id}">${r.id}</button></td>
+          <td>${r.name}</td>
+          <td>${r.contact}</td>
+          <td>${r.phone}</td>
+          <td>${r.industry}</td>
+          <td>${r.source}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td>${r.owner}</td>
+          <td>${r.created}</td>
+          <td>
+            <span class="ops">
+              <button class="link" type="button" data-detail="${r.id}">详情</button>
+              <button class="link" type="button" data-follow="${r.id}">跟进</button>
+              <button class="link" type="button" data-edit="${r.id}">编辑</button>
+              <button class="link" type="button" data-assign="${r.id}">指派</button>
+            </span>
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="10" style="text-align:center;color:#8c8c8c;">暂无数据</td></tr>`;
+      document.getElementById("totalText").textContent = "共 " + total + " 条";
+      let html = `<button type="button" id="prevPage" ${page <= 1 ? "disabled" : ""}>‹</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="page-num${i === page ? " active" : ""}" type="button" data-p="${i}">${i}</button>`;
+      }
+      html += `<button type="button" id="nextPage" ${page >= totalPages ? "disabled" : ""}>›</button>`;
+      document.getElementById("pager").innerHTML = html;
+    }
+
+    function fillLead(row, title, readonly) {
+      document.getElementById("leadTitle").textContent = title;
+      document.getElementById("lId").value = row ? row.id : "";
+      document.getElementById("lName").value = row ? row.name : "";
+      document.getElementById("lSource").value = row ? row.source : "广告投放";
+      document.getElementById("lIndustry").value = row ? row.industry : "互联网";
+      document.getElementById("lLine").value = row ? row.line : "代账服务";
+      document.getElementById("lContact").value = row ? row.contact : "";
+      document.getElementById("lPhone").value = row ? row.phone : "";
+      document.getElementById("lWechat").value = row ? row.wechat : "";
+      document.getElementById("lEmail").value = row ? row.email : "";
+      document.getElementById("lJob").value = row ? row.job : "";
+      document.getElementById("lProv").value = row ? row.prov : "浙江";
+      document.getElementById("lCity").value = row ? row.city : "";
+      document.getElementById("lDist").value = row ? row.dist : "";
+      document.getElementById("lAddr").value = row ? row.addr : "";
+      document.getElementById("lNote").value = row ? row.note : "";
+      document.getElementById("leadSave").style.display = readonly ? "none" : "";
+      document.querySelectorAll("#formLead input, #formLead select, #formLead textarea").forEach((el) => {
+        if (el.id === "lId") return;
+        el.disabled = !!readonly;
+      });
+      openMask("maskLead");
+    }
 
     function openFollow(id) {
-      currentFollowId = id || rows[0].id;
-      const row = rows.find((r) => String(r.id) === String(currentFollowId)) || rows[0];
+      currentId = id || (rows[0] && rows[0].id);
+      const row = rows.find((r) => r.id === currentId) || rows[0];
       document.getElementById("fRowId").value = row.id;
       document.getElementById("formFollow").reset();
-      document.getElementById("fWay").value = "通话中";
-      wayBtn.textContent = "通话中";
+      document.getElementById("fWay").value = "电话";
+      document.getElementById("followStatus").value = row.status || "跟进中";
       document.getElementById("fTime").value = nowLocal();
       document.getElementById("fNext").value = "";
       document.getElementById("fContent").value = "";
       openMask("maskFollow");
     }
 
-    function openLog(id) {
-      currentFollowId = id;
-      const row = rows.find((r) => String(r.id) === String(id));
-      const list = (follows[id] || []).slice();
-      document.getElementById("logTitle").textContent = "查看跟进记录";
-      document.getElementById("logIntent").textContent = list.length ? "有意向" : "待确认";
-      document.getElementById("logPlan").textContent = list.length ? "继续电话跟进" : "尚未制定";
-      document.getElementById("logOther").textContent = row ? row.name : "—";
-      document.getElementById("logTimeline").innerHTML = list.length
-        ? list.map((item) => `
-            <div class="tl-item">
-              <span class="tl-dot"></span>
-              <div class="tl-date">${item.date}</div>
-              <div class="tl-meta"><span class="tl-tag">${item.way}</span><span>${item.person}</span></div>
-              <div class="tl-note">${item.content}</div>
-            </div>
-          `).join("")
-        : `<div style="color:#8c8c8c;font-size:13px;padding:12px 0;">暂无跟进记录</div>`;
-      openMask("maskLog");
-    }
+    document.getElementById("btnQuery").onclick = () => applyFilter(true);
+    document.getElementById("btnReset").onclick = () => {
+      document.getElementById("fLine").value = "";
+      document.getElementById("fStatus").value = "";
+      document.getElementById("fPhone").value = "";
+      document.getElementById("fKey").value = "";
+      applyFilter(false);
+      toast("已重置");
+    };
+    document.getElementById("btnNew").onclick = () => fillLead(null, "新建线索", false);
+    document.getElementById("pageSize").onchange = () => {
+      pageSize = Number(document.getElementById("pageSize").value);
+      page = 1;
+      renderTable();
+    };
+    document.getElementById("pager").addEventListener("click", (e) => {
+      if (e.target.id === "prevPage" && page > 1) { page--; renderTable(); }
+      if (e.target.id === "nextPage") {
+        const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+        if (page < totalPages) { page++; renderTable(); }
+      }
+      const p = e.target.closest("[data-p]");
+      if (p) { page = Number(p.dataset.p); renderTable(); }
+    });
+    document.getElementById("btnJump").onclick = () => {
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      const n = Number(document.getElementById("jumpPage").value);
+      if (!n || n < 1 || n > totalPages) { toast("页码无效"); return; }
+      page = n;
+      renderTable();
+    };
+
+    document.getElementById("tableBody").addEventListener("click", (e) => {
+      const detail = e.target.closest("[data-detail]");
+      const follow = e.target.closest("[data-follow]");
+      const edit = e.target.closest("[data-edit]");
+      const assign = e.target.closest("[data-assign]");
+      if (detail) {
+        const row = rows.find((r) => r.id === detail.dataset.detail);
+        if (row) fillLead(row, "线索详情", true);
+        return;
+      }
+      if (follow) { openFollow(follow.dataset.follow); return; }
+      if (edit) {
+        const row = rows.find((r) => r.id === edit.dataset.edit);
+        if (row) fillLead(row, "编辑线索", false);
+        return;
+      }
+      if (assign) {
+        const row = rows.find((r) => r.id === assign.dataset.assign);
+        document.getElementById("aId").value = row.id;
+        document.getElementById("aName").value = row.name + " / " + row.contact;
+        document.getElementById("aPerson").value = row.owner;
+        openMask("maskAssign");
+      }
+    });
+
+    document.getElementById("formLead").onsubmit = (e) => {
+      e.preventDefault();
+      const id = document.getElementById("lId").value;
+      const data = {
+        name: document.getElementById("lName").value,
+        source: document.getElementById("lSource").value,
+        industry: document.getElementById("lIndustry").value,
+        line: document.getElementById("lLine").value,
+        contact: document.getElementById("lContact").value,
+        phone: document.getElementById("lPhone").value,
+        wechat: document.getElementById("lWechat").value,
+        email: document.getElementById("lEmail").value,
+        job: document.getElementById("lJob").value,
+        prov: document.getElementById("lProv").value,
+        city: document.getElementById("lCity").value,
+        dist: document.getElementById("lDist").value,
+        addr: document.getElementById("lAddr").value,
+        note: document.getElementById("lNote").value
+      };
+      if (id) {
+        const row = rows.find((r) => r.id === id);
+        Object.assign(row, data);
+        toast("保存成功");
+      } else {
+        rows.unshift({
+          id: "XS202608" + String(nextId++).padStart(3, "0"),
+          status: "待跟进",
+          owner: "用户",
+          created: nowText(),
+          ...data
+        });
+        toast("新建线索已保存");
+      }
+      closeMask("maskLead");
+      applyFilter(false);
+    };
 
     document.getElementById("formFollow").onsubmit = (e) => {
       e.preventDefault();
-      const id = document.getElementById("fRowId").value || currentFollowId || rows[0].id;
-      const row = rows.find((r) => String(r.id) === String(id)) || rows[0];
-      if (!follows[id]) follows[id] = [];
-      follows[id].unshift({
-        date: fmtTime(document.getElementById("fTime").value),
-        way: document.getElementById("fWay").value,
-        person: row.name,
-        content: document.getElementById("fContent").value || "（无跟进内容）",
-        next: fmtTime(document.getElementById("fNext").value)
-      });
-      toast("跟进已添加");
+      const id = document.getElementById("fRowId").value;
+      const row = rows.find((r) => r.id === id);
+      if (row) row.status = document.getElementById("followStatus").value;
+      toast("提交保存成功");
       closeMask("maskFollow");
+      applyFilter(false);
     };
 
-    document.getElementById("logAdd").onclick = () => {
-      closeMask("maskLog");
-      openFollow(currentFollowId);
+    document.getElementById("formAssign").onsubmit = (e) => {
+      e.preventDefault();
+      const row = rows.find((r) => r.id === document.getElementById("aId").value);
+      if (row) row.owner = document.getElementById("aPerson").value;
+      toast("指派成功");
+      closeMask("maskAssign");
+      applyFilter(false);
     };
 
-    document.getElementById("btnAdd").onclick = () => {
-      document.getElementById("formAdd").reset();
-      document.getElementById("aYear").value = "2026";
-      document.getElementById("aMonth").value = "8月";
-      openMask("maskAdd");
-    };
-
-    function openMask(id) { document.getElementById(id).classList.add("show"); }
-    function closeMask(id) { document.getElementById(id).classList.remove("show"); }
     document.querySelectorAll("[data-close]").forEach((el) => {
       el.addEventListener("click", () => closeMask(el.dataset.close));
     });
     document.querySelectorAll(".mask").forEach((mask) => {
       mask.addEventListener("click", (e) => { if (e.target === mask) mask.classList.remove("show"); });
     });
-
-    document.getElementById("formAdd").onsubmit = (e) => {
-      e.preventDefault();
-      const name = document.getElementById("aPerson").value;
-      const deptMap = { 张三: "销售一部", 李四: "销售二部", 吴芳: "网销一组", 陈海: "网销一组", 杨文: "常熟组", 李承: "销售一部", 赵思源: "常熟组" };
-      rows.unshift({
-        id: nextId++,
-        name,
-        dept: deptMap[name] || "销售一部",
-        month: document.getElementById("aMonth").value,
-        year: document.getElementById("aYear").value,
-        pub: Number(document.getElementById("aPub").value || 0),
-        pri: Number(document.getElementById("aPri").value || 0),
-        valid: Number(document.getElementById("aValid").value || 0),
-        conv: "0%",
-        neu: Number(document.getElementById("aNew").value || 0),
-        months: Array(12).fill(0),
-      });
-      toast("确认新增已提交");
-      closeMask("maskAdd");
-      filtered = rows.slice();
-      page = 1;
-      renderTable();
-    };
-
-    document.getElementById("formDetail").onsubmit = (e) => {
-      e.preventDefault();
-      toast("已确定");
-      closeMask("maskDetail");
-    };
 
     const nav = document.getElementById("sidebarNav");
     nav.querySelectorAll(".nav-group-btn").forEach((btn) => {
@@ -769,7 +779,7 @@
     nav.querySelectorAll(".nav-item").forEach((item) => {
       item.addEventListener("click", () => {
         const pageName = item.dataset.page;
-        if (pageName === "workbench" || pageName === "marketing" || pageName === "leads") return;
+        if (pageName === "workbench" || pageName === "marketing" || pageName === "leads" || pageName === "opportunity" || pageName === "contract") return;
         toast("「" + item.textContent.trim() + "」页面暂未接入");
       });
     });
@@ -777,7 +787,7 @@
       el.addEventListener("click", () => toast(el.dataset.tip));
     });
 
-    renderTable();
+    applyFilter(false);
     if (new URLSearchParams(location.search).get("follow") === "1") {
       openFollow(rows[0].id);
     }

@@ -654,8 +654,8 @@
           <div class="nav-sub">
             <a class="nav-item" data-page="marketing" href="marketing.html">营销目标</a>
             <a class="nav-item" data-page="leads" href="leads.html">线索管理</a>
-            <button class="nav-item" data-page="opportunity" type="button">商机管理</button>
-            <button class="nav-item" data-page="contract" type="button">合同管理</button>
+            <a class="nav-item" data-page="opportunity" href="opportunities.html">商机管理</a>
+            <a class="nav-item" data-page="contract" href="contracts.html">合同管理</a>
             <button class="nav-item" data-page="customer" type="button">客户管理</button>
             <button class="nav-item" data-page="performance" type="button">销售业绩</button>
           </div>
@@ -902,6 +902,14 @@
         }
         if (page === "leads") {
           location.href = "leads.html";
+          return;
+        }
+        if (page === "opportunity") {
+          location.href = "opportunities.html";
+          return;
+        }
+        if (page === "contract") {
+          location.href = "contracts.html";
           return;
         }
         nav.querySelectorAll(".nav-item").forEach((el) => el.classList.remove("active"));
