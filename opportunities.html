@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商机管理 - CRM</title>
+  <style>
+    :root {
+      --sidebar: #2b3343;
+      --sidebar-hover: rgba(255, 255, 255, 0.08);
+      --primary: #1890ff;
+      --bg: #f0f2f5;
+      --text: #262626;
+      --muted: #8c8c8c;
+      --border: #f0f0f0;
+      --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px rgba(0, 0, 0, 0.04);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    button, input, select, textarea { font-family: inherit; }
+    button { cursor: pointer; }
+
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 208px; flex-shrink: 0; background: var(--sidebar); color: #d9d9d9;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+    .brand {
+      height: 56px; display: flex; align-items: center; padding: 0 20px;
+      font-size: 22px; font-weight: 700; color: var(--primary); letter-spacing: 1px;
+    }
+    .nav { padding: 6px 8px 24px; }
+    .nav-item, .nav-group-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px; border: 0;
+      background: transparent; color: #e8eaed; font-size: 14px; height: 40px;
+      padding: 0 12px; border-radius: 4px; text-align: left; text-decoration: none;
+    }
+    .nav-item:hover, .nav-group-btn:hover { background: var(--sidebar-hover); }
+    .nav-item.active { background: #1890ff; color: #fff; }
+    .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+    .nav-group-btn .chevron { margin-left: auto; width: 10px; height: 10px; transition: transform .2s; opacity: .7; }
+    .nav-group.open .nav-group-btn .chevron { transform: rotate(180deg); }
+    .nav-sub { display: none; padding: 2px 0 6px; }
+    .nav-group.open .nav-sub { display: block; }
+    .nav-sub .nav-item { padding-left: 38px; height: 36px; color: #c5c9d1; }
+    .nav-sub .nav-item.active { color: #fff; background: #1890ff; }
+
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .header {
+      height: 56px; background: #fff; display: flex; align-items: center; justify-content: flex-end;
+      padding: 0 22px; box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08); position: sticky; top: 0; z-index: 10;
+    }
+    .header-actions { display: flex; align-items: center; gap: 16px; color: #595959; }
+    .icon-btn {
+      width: 32px; height: 32px; border: 0; background: transparent; border-radius: 50%;
+      display: grid; place-items: center; color: #595959;
+    }
+    .icon-btn:hover { background: #f5f5f5; color: var(--primary); }
+    .user-chip {
+      display: flex; align-items: center; gap: 8px; border: 0; background: transparent;
+      color: #595959; font-size: 14px; padding: 4px 6px; border-radius: 4px;
+    }
+    .user-chip:hover { background: #f5f5f5; }
+    .user-chip img {
+      width: 28px; height: 28px; border-radius: 50%; object-fit: cover; object-position: center center;
+      border: 1px solid #91d5ff; display: block;
+    }
+
+    .content { padding: 16px 18px 28px; }
+    .page-card { background: #fff; border-radius: 8px; box-shadow: var(--card-shadow); padding: 16px; margin-bottom: 12px; }
+
+    .filter-grid {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 14px; align-items: end;
+    }
+    .f-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .f-item label { font-size: 13px; color: #595959; }
+    .select, .input {
+      height: 32px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 10px;
+      font-size: 13px; color: #595959; background: #fff; width: 100%; min-width: 0;
+    }
+    .select { appearance: none; padding-right: 24px;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23bfbfbf'/%3E%3C/svg%3E") no-repeat right 8px center;
+    }
+    .btn { height: 32px; padding: 0 14px; border-radius: 4px; font-size: 13px; border: 1px solid transparent; white-space: nowrap; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: #40a9ff; }
+    .btn-ghost { background: #fff; color: #595959; border-color: #d9d9d9; }
+    .btn-ghost:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-reset {
+      background: #fff; color: var(--primary); border: 1px solid #91d5ff; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-reset:hover { background: #e6f7ff; }
+    .filter-actions { display: flex; gap: 8px; align-items: center; }
+
+    .tabs {
+      display: flex; gap: 4px; border-bottom: 1px solid #f0f0f0; margin-bottom: 0;
+    }
+    .tab {
+      height: 42px; padding: 0 18px; border: 0; background: transparent; color: #595959; font-size: 14px;
+      box-shadow: inset 0 -2px 0 transparent;
+    }
+    .tab.active { color: var(--primary); box-shadow: inset 0 -2px 0 var(--primary); font-weight: 600; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+    th { background: #fafafa; color: #8c8c8c; font-weight: 600; }
+    tbody tr:hover { background: #fafafa; }
+    .link { border: 0; background: transparent; color: var(--primary); font-size: 13px; padding: 0; margin-right: 8px; }
+    .link:hover { text-decoration: underline; }
+    .link-green { color: #52c41a; }
+    .ops { display: flex; flex-wrap: wrap; gap: 4px 0; }
+
+    .badge {
+      display: inline-block; padding: 1px 8px; border-radius: 2px; font-size: 12px; line-height: 20px;
+    }
+    .badge-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .badge-blue { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+    .badge-gray { background: #fafafa; color: #8c8c8c; border: 1px solid #d9d9d9; }
+
+    .table-foot {
+      display: flex; align-items: center; justify-content: flex-end; margin-top: 14px; gap: 10px; flex-wrap: wrap;
+      color: #8c8c8c; font-size: 13px;
+    }
+    .pager { display: flex; align-items: center; gap: 6px; }
+    .pager button, .page-num {
+      min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid #d9d9d9; background: #fff; border-radius: 4px; color: #595959;
+    }
+    .page-num.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .pager button:disabled { opacity: .4; cursor: default; }
+    .jump { display: flex; align-items: center; gap: 6px; }
+    .jump input { width: 48px; height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; }
+
+    .mask {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    .mask.show { display: flex; }
+    .modal {
+      width: 640px; max-width: 100%; background: #fff; border-radius: 8px; overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    }
+    .modal.sm { width: 420px; }
+    .modal-head {
+      height: 48px; background: #1890ff; color: #fff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 16px; font-size: 15px; font-weight: 600;
+    }
+    .modal-close { border: 0; background: transparent; color: #fff; font-size: 20px; line-height: 1; width: 28px; }
+    .modal-body { padding: 18px 20px 8px; }
+    .form-row { display: flex; gap: 12px; margin-bottom: 14px; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field label { font-size: 13px; color: #595959; }
+    .field .req::before { content: "* "; color: #ff4d4f; }
+    .sec-bar {
+      display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin: 0 0 14px;
+    }
+    .sec-bar::before { content: ""; width: 3px; height: 14px; background: #1890ff; border-radius: 1px; }
+    textarea.input { height: auto; min-height: 72px; padding: 8px 10px; resize: vertical; }
+    .modal-foot { display: flex; justify-content: center; gap: 12px; padding: 8px 0 16px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      height: 28px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 14px;
+      background: #fff; color: #595959; font-size: 12px;
+    }
+    .tag.active { border-color: var(--primary); color: var(--primary); background: #e6f7ff; }
+
+    .timeline { padding: 4px 4px 8px 8px; max-height: 280px; overflow: auto; }
+    .tl-item { position: relative; padding: 0 0 18px 22px; }
+    .tl-item::before {
+      content: ""; position: absolute; left: 5px; top: 8px; bottom: 0; width: 2px; background: #f0f0f0;
+    }
+    .tl-item:last-child::before { display: none; }
+    .tl-dot {
+      position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%;
+      background: #fff; border: 2px solid var(--primary);
+    }
+    .tl-date { font-size: 12px; color: #8c8c8c; margin-bottom: 4px; }
+    .tl-meta { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; }
+    .tl-tag { color: var(--primary); }
+    .tl-note {
+      background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; padding: 8px 10px;
+      font-size: 13px; color: #595959; line-height: 1.6;
+    }
+
+    .toast {
+      position: fixed; top: 72px; left: 50%; transform: translateX(-50%) translateY(-12px);
+      background: rgba(0,0,0,.75); color: #fff; font-size: 13px; padding: 8px 16px; border-radius: 4px;
+      opacity: 0; pointer-events: none; transition: .2s; z-index: 60;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 1200px) {
+      .filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">CRM</div>
+      <nav class="nav" id="sidebarNav">
+        <a class="nav-item" data-page="workbench" href="index.html">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor"/><rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor"/><rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor"/></svg>
+          工作台
+        </a>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 13V5l6-3 6 3v8H2z" stroke="currentColor"/><path d="M6 13v-4h4v4" stroke="currentColor"/></svg>
+            销售中心
+            <svg class="chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <a class="nav-item" data-page="marketing" href="marketing.html">营销目标</a>
+            <a class="nav-item" data-page="leads" href="leads.html">线索管理</a>
+            <a class="nav-item active" data-page="opportunity" href="opportunities.html">商机管理</a>
+            <a class="nav-item" data-page="contract" href="contracts.html">合同管理</a>
+            <button class="nav-item" data-page="customer" type="button">客户管理</button>
+            <button class="nav-item" data-page="performance" type="button">销售业绩</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="currentColor"/><path d="M3 13c.8-2.4 2.6-3.5 5-3.5s4.2 1.1 5 3.5" stroke="currentColor"/></svg>
+            客户中心
+            <svg class="chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="gov" type="button">政务服务</button>
+            <button class="nav-item" data-page="bookkeeping" type="button">代账服务</button>
+            <button class="nav-item" data-page="address" type="button">地址管理</button>
+            <button class="nav-item" data-page="goods" type="button">客户物品</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor"/><path d="M2 6.5h12M6 3v10" stroke="currentColor"/></svg>
+            运营中心
+            <svg class="chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="expense" type="button">财务报销</button>
+            <button class="nav-item" data-page="report" type="button">经营报表</button>
+            <button class="nav-item" data-page="hr" type="button">人事管理</button>
+            <button class="nav-item" data-page="salary" type="button">薪资管理</button>
+            <button class="nav-item" data-page="staff" type="button">员工管理</button>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor"/><path d="M8 2.2v1.6M8 12.2v1.6M2.2 8h1.6M12.2 8h1.6M3.9 3.9l1.1 1.1M11 11l1.1 1.1M3.9 12.1l1.1-1.1M11 5l1.1-1.1" stroke="currentColor"/></svg>
+            系统管理
+            <svg class="chevron" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="role" type="button">角色权限</button>
+            <button class="nav-item" data-page="dict" type="button">字典管理</button>
+            <button class="nav-item" data-page="menu" type="button">菜单管理</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="header">
+        <div class="header-actions">
+          <button class="icon-btn" type="button" title="消息" data-tip="消息中心">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7.5A2.5 2.5 0 016.5 5h11A2.5 2.5 0 0120 7.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 16.5v-9z" stroke="currentColor" stroke-width="1.6"/><path d="M5 7l7 6 7-6" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+          <button class="icon-btn" type="button" title="帮助" data-tip="帮助中心">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M9.6 9.4a2.4 2.4 0 114.2 1.6c-.7.7-1.3 1.1-1.3 2.2" stroke="currentColor" stroke-width="1.6"/><circle cx="12.5" cy="16.4" r="1" fill="currentColor"/></svg>
+          </button>
+          <button class="user-chip" type="button" data-tip="个人中心">
+            <img src="assets/avatar.png" alt="">
+            用户
+          </button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="page-card">
+          <div class="filter-grid">
+            <div class="f-item">
+              <label>产品</label>
+              <select class="select" id="fProduct">
+                <option value="">请选择</option>
+                <option>代理记账</option>
+                <option>代理注册</option>
+                <option>税筹服务</option>
+                <option>共享办公</option>
+              </select>
+            </div>
+            <div class="f-item">
+              <label>客户名称</label>
+              <input class="input" id="fCustomer" placeholder="请输入">
+            </div>
+            <div class="f-item">
+              <label>联系人</label>
+              <input class="input" id="fContact" placeholder="请输入">
+            </div>
+            <div class="f-item">
+              <label>联系电话</label>
+              <input class="input" id="fPhone" placeholder="请输入">
+            </div>
+            <div class="f-item">
+              <label>商机等级</label>
+              <select class="select" id="fGrade">
+                <option value="">请选择</option>
+                <option>A</option><option>B</option><option>C</option><option>D</option>
+              </select>
+            </div>
+            <div class="f-item">
+              <label>商机阶段</label>
+              <select class="select" id="fStage">
+                <option value="">请选择</option>
+                <option>意向商机</option>
+                <option>跟进中</option>
+                <option>成交商机</option>
+                <option>流失商机</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="btnQuery" type="button">查询</button>
+              <button class="btn btn-reset" id="btnReset" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0113.3-6M20 12a8 8 0 01-13.3 6" stroke="currentColor" stroke-width="1.8"/><path d="M17 4v4h4M7 20v-4H3" stroke="currentColor" stroke-width="1.8"/></svg>
+                重置筛选条件
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-card">
+          <div class="tabs" id="tabs">
+            <button class="tab active" type="button" data-tab="mine">我的商机</button>
+            <button class="tab" type="button" data-tab="won">成交商机</button>
+            <button class="tab" type="button" data-tab="lost">流失商机</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead id="thead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <span id="totalText">共 0 条</span>
+            <div class="pager" id="pager"></div>
+            <select class="select" id="pageSize" style="width:96px;min-width:96px;">
+              <option value="10">10 条/页</option>
+              <option value="20">20 条/页</option>
+            </select>
+            <div class="jump">
+              跳至
+              <input id="jumpPage" type="number" min="1">
+              页
+              <button class="btn btn-ghost" id="btnJump" type="button" style="height:28px;">确定</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="mask" id="maskEdit">
+    <div class="modal" role="dialog" aria-labelledby="editTitle">
+      <div class="modal-head">
+        <span id="editTitle">编辑商机</span>
+        <button class="modal-close" type="button" data-close="maskEdit">×</button>
+      </div>
+      <form class="modal-body" id="formEdit">
+        <input type="hidden" id="eId">
+        <div class="sec-bar">客户信息</div>
+        <div class="form-row">
+          <div class="field">
+            <label class="req">客户名称</label>
+            <input class="input" id="eCustomer" required>
+          </div>
+          <div class="field">
+            <label class="req">手机号码</label>
+            <input class="input" id="ePhone" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>区域</label>
+            <select class="select" id="eRegion">
+              <option>天门</option><option>汉口</option><option>杭州</option><option>无锡</option><option>深圳</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>行业</label>
+            <input class="input" id="eIndustry">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>来源渠道</label>
+            <select class="select" id="eSource">
+              <option>抖音</option><option>问卷</option><option>转介绍</option><option>线下活动</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>企业形式</label>
+            <input class="input" id="eType">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>详细地址</label>
+            <input class="input" id="eAddress">
+          </div>
+          <div class="field">
+            <label>是否添加微信</label>
+            <select class="select" id="eWechat">
+              <option>是</option><option>否</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>商机等级</label>
+            <select class="select" id="eGrade">
+              <option>A</option><option>B</option><option>C</option><option>D</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>商机阶段</label>
+            <select class="select" id="eStage">
+              <option>意向商机</option>
+              <option>跟进中</option>
+              <option>成交商机</option>
+              <option>流失商机</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>意向商品</label>
+            <select class="select" id="eProduct">
+              <option>代理记账</option>
+              <option>代理注册</option>
+              <option>税筹服务</option>
+              <option>共享办公</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>联系人</label>
+            <input class="input" id="eContact">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>意向描述</label>
+            <textarea class="input" id="eNote" placeholder="请输入"></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-primary" type="submit">确认</button>
+          <button class="btn btn-ghost" type="button" data-close="maskEdit">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="mask" id="maskDel">
+    <div class="modal sm" role="dialog">
+      <div class="modal-head">
+        <span>删除商机</span>
+        <button class="modal-close" type="button" data-close="maskDel">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="delText" style="font-size:14px;padding:8px 0 16px;">确认删除该商机？</p>
+        <div class="modal-foot">
+          <button class="btn btn-primary" type="button" id="btnDelOk">确认</button>
+          <button class="btn btn-ghost" type="button" data-close="maskDel">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="maskContract">
+    <div class="modal sm" role="dialog">
+      <div class="modal-head">
+        <span>查看合同</span>
+        <button class="modal-close" type="button" data-close="maskContract">×</button>
+      </div>
+      <div class="modal-body" id="contractBody"></div>
+      <div class="modal-foot">
+        <button class="btn btn-primary" type="button" data-close="maskContract">确认</button>
+        <button class="btn btn-ghost" type="button" data-close="maskContract">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="maskFollow">
+    <div class="modal" role="dialog">
+      <div class="modal-head">
+        <span>新增跟进</span>
+        <button class="modal-close" type="button" data-close="maskFollow">×</button>
+      </div>
+      <form class="modal-body" id="formFollow">
+        <input type="hidden" id="fRowId">
+        <div class="form-row">
+          <div class="field">
+            <label class="req">跟进日期</label>
+            <input class="input" id="fTime" type="datetime-local" required>
+          </div>
+          <div class="field">
+            <label>下次跟进日期</label>
+            <input class="input" id="fNext" type="datetime-local">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label class="req">跟进方式</label>
+            <div class="tags" id="wayTags">
+              <button class="tag active" type="button" data-val="电话">电话</button>
+              <button class="tag" type="button" data-val="拜访">拜访</button>
+              <button class="tag" type="button" data-val="会议">会议</button>
+              <button class="tag" type="button" data-val="其它">其它</button>
+            </div>
+            <input type="hidden" id="fWay" value="电话">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>跟进内容</label>
+            <textarea class="input" id="fContent" placeholder="请输入跟进内容"></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" type="button" data-close="maskFollow">取消</button>
+          <button class="btn btn-primary" type="submit">确认保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="mask" id="maskLog">
+    <div class="modal" role="dialog">
+      <div class="modal-head">
+        <span>查看跟进</span>
+        <button class="modal-close" type="button" data-close="maskLog">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="timeline" id="logTimeline"></div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" type="button" data-close="maskLog">取消</button>
+          <button class="btn btn-primary" type="button" id="logAdd">新增跟进</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const PRODUCTS = ["代理记账", "代理注册", "税筹服务", "共享办公"];
+    let tab = "mine";
+    let page = 1;
+    let pageSize = 10;
+    let nextId = 30;
+    let pendingDel = null;
+    let currentFollowId = "";
+
+    let rows = [
+      { id: 1, tab: "mine", product: "代理记账", customer: "商会", contact: "李经理", phone: "17851819000", stage: "意向商机", grade: "A", note: "123123", region: "天门", industry: "服务业", source: "抖音", type: "有限公司", address: "", wechat: "是" },
+      { id: 2, tab: "mine", product: "代理注册", customer: "杭州华迈科技", contact: "王亮", phone: "17815761902", stage: "跟进中", grade: "A", note: "意向已确认，下周出方案", region: "杭州", industry: "科技", source: "转介绍", type: "有限公司", address: "杭州市滨江区", wechat: "是" },
+      { id: 3, tab: "mine", product: "代理记账", customer: "无锡联创科技", contact: "周强", phone: "13800138001", stage: "意向商机", grade: "B", note: "积极沟通中", region: "无锡", industry: "科技", source: "问卷", type: "有限公司", address: "", wechat: "否" },
+      { id: 4, tab: "mine", product: "税筹服务", customer: "达明", contact: "许清", phone: "15800332222", stage: "跟进中", grade: "B", note: "当次沟通，需要评估", region: "汉口", industry: "贸易", source: "线下活动", type: "个体", address: "", wechat: "是" },
+      { id: 5, tab: "mine", product: "共享办公", customer: "帅萨出品科技", contact: "李明", phone: "17816781902", stage: "意向商机", grade: "A", note: "积极沟通中，下周出方案", region: "深圳", industry: "科技", source: "抖音", type: "有限公司", address: "", wechat: "是" },
+      { id: 6, tab: "mine", product: "代理记账", customer: "正略科技创新", contact: "赵敏", phone: "13900001111", stage: "跟进中", grade: "C", note: "价格需再确认", region: "杭州", industry: "科技", source: "问卷", type: "有限公司", address: "", wechat: "否" },
+      { id: 7, tab: "mine", product: "代理注册", customer: "冥想致远科技", contact: "陈海", phone: "13700002222", stage: "意向商机", grade: "A", note: "资料收集中", region: "杭州", industry: "科技", source: "转介绍", type: "有限公司", address: "", wechat: "是" },
+      { id: 8, tab: "mine", product: "代理记账", customer: "周旋", contact: "李稳稳", phone: "17875181902", stage: "意向商机", grade: "A", note: "123123", region: "汉口", industry: "11", source: "问卷", type: "22", address: "", wechat: "是" },
+      { id: 9, tab: "mine", product: "税筹服务", customer: "杭州捷众科技", contact: "吴芳", phone: "13600003333", stage: "跟进中", grade: "B", note: "方案已发", region: "杭州", industry: "科技", source: "抖音", type: "有限公司", address: "", wechat: "是" },
+      { id: 10, tab: "mine", product: "代理记账", customer: "海鸥", contact: "张三", phone: "17516781802", stage: "意向商机", grade: "A", note: "待添加微信后跟进", region: "天门", industry: "11", source: "抖音", type: "22", address: "", wechat: "是" },
+      { id: 11, tab: "mine", product: "共享办公", customer: "深圳市某某测试商贸", contact: "杨文", phone: "13500004444", stage: "跟进中", grade: "C", note: "决策人未定", region: "深圳", industry: "贸易", source: "线下活动", type: "有限公司", address: "", wechat: "否" },
+      { id: 12, tab: "won", product: "代理记账", customer: "杭州市物联网", contact: "王亮", phone: "17800005555", stage: "成交商机", grade: "A", note: "", contractNo: "HT20250915001", amount: "53w", dealTime: "2026-07-21 09:12" },
+      { id: 13, tab: "won", product: "代理注册", customer: "杭州捷众科技", contact: "周强", phone: "17800006666", stage: "成交商机", grade: "A", note: "", contractNo: "HT20200818001", amount: "50w", dealTime: "2026-07-21 09:12" },
+      { id: 14, tab: "won", product: "税筹服务", customer: "正略科技创新", contact: "许清", phone: "17800007777", stage: "成交商机", grade: "B", note: "", contractNo: "HT20250720003", amount: "8w", dealTime: "2026-07-20 14:20" },
+      { id: 15, tab: "won", product: "代理记账", customer: "无锡联创科技", contact: "李明", phone: "17800008888", stage: "成交商机", grade: "A", note: "", contractNo: "HT20250718004", amount: "4w", dealTime: "2026-07-18 11:05" },
+      { id: 16, tab: "won", product: "共享办公", customer: "冥想致远科技", contact: "赵敏", phone: "17800009999", stage: "成交商机", grade: "B", note: "", contractNo: "HT20250601005", amount: "12w", dealTime: "2026-06-01 10:00" },
+      { id: 17, tab: "lost", product: "代理记账", customer: "深圳市某某测试商贸", contact: "王亮", phone: "13911112222", stage: "流失商机", grade: "C", note: "价格太高了", dealTime: "2026-07-31 09:12" },
+      { id: 18, tab: "lost", product: "税筹服务", customer: "某贸易有限公司", contact: "周强", phone: "13911113333", stage: "流失商机", grade: "D", note: "联系人变动", dealTime: "2026-07-28 15:40" },
+      { id: 19, tab: "lost", product: "共享办公", customer: "达明", contact: "许清", phone: "13911114444", stage: "流失商机", grade: "C", note: "客户短期无需求", dealTime: "2026-07-22 09:12" },
+      { id: 20, tab: "lost", product: "代理注册", customer: "过户申请客户", contact: "李明", phone: "13911115555", stage: "流失商机", grade: "B", note: "决策人变更", dealTime: "2026-07-19 16:08" },
+      { id: 21, tab: "lost", product: "代理记账", customer: "注册审批客户", contact: "赵敏", phone: "13911116666", stage: "流失商机", grade: "C", note: "价格偏高", dealTime: "2026-07-15 11:22" }
+    ];
+
+    const follows = {
+      2: [{ date: "2026-08-12 10:20", way: "电话", person: "王亮", content: "电话沟通产品方案，客户反馈下周出方案。" }],
+      5: [{ date: "2026-08-10 09:12", way: "拜访", person: "李明", content: "上门拜访，确认代理注册意向。" }]
+    };
+
+    let filtered = [];
+
+    const toastEl = document.getElementById("toast");
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1600);
+    }
+    function openMask(id) { document.getElementById(id).classList.add("show"); }
+    function closeMask(id) { document.getElementById(id).classList.remove("show"); }
+
+    function applyFilter(showToast) {
+      const product = document.getElementById("fProduct").value;
+      const customer = document.getElementById("fCustomer").value.trim();
+      const contact = document.getElementById("fContact").value.trim();
+      const phone = document.getElementById("fPhone").value.trim();
+      const grade = document.getElementById("fGrade").value;
+      const stage = document.getElementById("fStage").value;
+      filtered = rows.filter((r) => r.tab === tab
+        && (!product || r.product === product)
+        && (!customer || r.customer.includes(customer))
+        && (!contact || (r.contact || "").includes(contact))
+        && (!phone || (r.phone || "").includes(phone))
+        && (!grade || r.grade === grade)
+        && (!stage || r.stage === stage)
+      );
+      page = 1;
+      renderTable();
+      if (showToast) toast("查询完成");
+    }
+
+    function headers() {
+      if (tab === "won") {
+        return ["#", "合同号", "客户名称", "联系人", "联系电话", "合同金额", "成交时间", "商机阶段", "商机等级", "操作"];
+      }
+      if (tab === "lost") {
+        return ["#", "意向产品", "客户名称", "联系人", "联系电话", "商机时间", "商机状态", "意向等级", "丢失描述", "操作"];
+      }
+      return ["#", "意向产品", "客户名称", "联系人", "联系电话", "商机阶段", "商机等级", "说明", "操作"];
+    }
+
+    function stageBadge(stage) {
+      if (stage === "成交商机") return `<span class="badge badge-green">${stage}</span>`;
+      if (stage === "流失商机") return `<span class="badge badge-gray">${stage}</span>`;
+      if (stage === "跟进中") return `<span class="badge badge-blue">${stage}</span>`;
+      return `<span class="badge badge-blue">${stage}</span>`;
+    }
+
+    function ops(r) {
+      if (tab === "won") {
+        return `<button class="link" type="button" data-contract="${r.id}">查看合同</button>`;
+      }
+      if (tab === "lost") {
+        return `<button class="link link-green" type="button" data-detail="${r.id}">详情</button>`;
+      }
+      return `<span class="ops">
+        <button class="link link-green" type="button" data-edit="${r.id}">编辑</button>
+        <button class="link link-green" type="button" data-del="${r.id}">删除</button>
+        <button class="link" type="button" data-convert="${r.id}">转换合同</button>
+        <button class="link" type="button" data-log="${r.id}">查看跟进</button>
+      </span>`;
+    }
+
+    function rowHtml(r, i) {
+      if (tab === "won") {
+        return `<tr>
+          <td>${i}</td>
+          <td><button class="link" type="button" data-contract="${r.id}">${r.contractNo}</button></td>
+          <td>${r.customer}</td>
+          <td>${r.contact}</td>
+          <td>${r.phone}</td>
+          <td>${r.amount}</td>
+          <td>${r.dealTime}</td>
+          <td>${stageBadge(r.stage)}</td>
+          <td>${r.grade}</td>
+          <td>${ops(r)}</td>
+        </tr>`;
+      }
+      if (tab === "lost") {
+        return `<tr>
+          <td>${i}</td>
+          <td><button class="link" type="button" data-detail="${r.id}">${r.product}</button></td>
+          <td>${r.customer}</td>
+          <td>${r.contact}</td>
+          <td>${r.phone}</td>
+          <td>${r.dealTime}</td>
+          <td>${stageBadge(r.stage)}</td>
+          <td>${r.grade}</td>
+          <td>${r.note}</td>
+          <td>${ops(r)}</td>
+        </tr>`;
+      }
+      return `<tr>
+        <td>${i}</td>
+        <td><button class="link" type="button" data-edit="${r.id}">${r.product}</button></td>
+        <td>${r.customer}</td>
+        <td>${r.contact}</td>
+        <td>${r.phone}</td>
+        <td>${r.stage}</td>
+        <td>${r.grade}</td>
+        <td>${r.note || "—"}</td>
+        <td>${ops(r)}</td>
+      </tr>`;
+    }
+
+    function renderTable() {
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      if (page > totalPages) page = totalPages;
+      const start = (page - 1) * pageSize;
+      const slice = filtered.slice(start, start + pageSize);
+      document.getElementById("thead").innerHTML = "<tr>" + headers().map((h) => `<th>${h}</th>`).join("") + "</tr>";
+      document.getElementById("tableBody").innerHTML = slice.map((r, idx) => rowHtml(r, start + idx + 1)).join("")
+        || `<tr><td colspan="${headers().length}" style="text-align:center;color:#8c8c8c;">暂无数据</td></tr>`;
+      document.getElementById("totalText").textContent = "共 " + total + " 条";
+      const pager = document.getElementById("pager");
+      let html = `<button type="button" id="prevPage" ${page <= 1 ? "disabled" : ""}>‹</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="page-num${i === page ? " active" : ""}" type="button" data-p="${i}">${i}</button>`;
+      }
+      html += `<button type="button" id="nextPage" ${page >= totalPages ? "disabled" : ""}>›</button>`;
+      pager.innerHTML = html;
+    }
+
+    document.getElementById("tabs").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-tab]");
+      if (!btn) return;
+      tab = btn.dataset.tab;
+      document.querySelectorAll("#tabs .tab").forEach((el) => el.classList.toggle("active", el === btn));
+      applyFilter(false);
+    });
+
+    document.getElementById("btnQuery").onclick = () => applyFilter(true);
+    document.getElementById("btnReset").onclick = () => {
+      document.getElementById("fProduct").value = "";
+      document.getElementById("fCustomer").value = "";
+      document.getElementById("fContact").value = "";
+      document.getElementById("fPhone").value = "";
+      document.getElementById("fGrade").value = "";
+      document.getElementById("fStage").value = "";
+      applyFilter(false);
+      toast("已重置筛选条件");
+    };
+    document.getElementById("pageSize").onchange = () => {
+      pageSize = Number(document.getElementById("pageSize").value);
+      page = 1;
+      renderTable();
+    };
+    document.getElementById("pager").addEventListener("click", (e) => {
+      if (e.target.id === "prevPage" && page > 1) { page--; renderTable(); }
+      if (e.target.id === "nextPage") {
+        const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+        if (page < totalPages) { page++; renderTable(); }
+      }
+      const p = e.target.closest("[data-p]");
+      if (p) { page = Number(p.dataset.p); renderTable(); }
+    });
+    document.getElementById("btnJump").onclick = () => {
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      const n = Number(document.getElementById("jumpPage").value);
+      if (!n || n < 1 || n > totalPages) { toast("页码无效"); return; }
+      page = n;
+      renderTable();
+    };
+
+    function fillForm(row, title) {
+      document.getElementById("editTitle").textContent = title;
+      document.getElementById("eId").value = row.id;
+      document.getElementById("eCustomer").value = row.customer || "";
+      document.getElementById("ePhone").value = row.phone || "";
+      document.getElementById("eRegion").value = row.region || "杭州";
+      document.getElementById("eIndustry").value = row.industry || "";
+      document.getElementById("eSource").value = row.source || "抖音";
+      document.getElementById("eType").value = row.type || "";
+      document.getElementById("eAddress").value = row.address || "";
+      document.getElementById("eWechat").value = row.wechat || "是";
+      document.getElementById("eGrade").value = row.grade || "A";
+      document.getElementById("eStage").value = row.stage || "意向商机";
+      document.getElementById("eProduct").value = row.product || PRODUCTS[0];
+      document.getElementById("eContact").value = row.contact || "";
+      document.getElementById("eNote").value = row.note || "";
+      openMask("maskEdit");
+    }
+
+    document.getElementById("tableBody").addEventListener("click", (e) => {
+      const edit = e.target.closest("[data-edit]");
+      const del = e.target.closest("[data-del]");
+      const convert = e.target.closest("[data-convert]");
+      const log = e.target.closest("[data-log]");
+      const contract = e.target.closest("[data-contract]");
+      const detail = e.target.closest("[data-detail]");
+      if (edit) {
+        const row = rows.find((r) => String(r.id) === edit.dataset.edit);
+        if (row) fillForm(row, "编辑商机");
+        return;
+      }
+      if (detail) {
+        const row = rows.find((r) => String(r.id) === detail.dataset.detail);
+        if (row) fillForm(row, "商机详情");
+        return;
+      }
+      if (del) {
+        const row = rows.find((r) => String(r.id) === del.dataset.del);
+        pendingDel = del.dataset.del;
+        document.getElementById("delText").textContent = "确认删除商机「" + (row ? row.customer : "") + "」？";
+        openMask("maskDel");
+        return;
+      }
+      if (convert) {
+        location.href = "contracts.html";
+        return;
+      }
+      if (contract) {
+        const row = rows.find((r) => String(r.id) === contract.dataset.contract);
+        document.getElementById("contractBody").innerHTML = row ? `
+          <div class="form-row"><div class="field"><label>合同号</label><input class="input" value="${row.contractNo}" readonly></div></div>
+          <div class="form-row"><div class="field"><label>客户名称</label><input class="input" value="${row.customer}" readonly></div></div>
+          <div class="form-row"><div class="field"><label>合同金额</label><input class="input" value="${row.amount}" readonly></div></div>
+          <div class="form-row"><div class="field"><label>成交时间</label><input class="input" value="${row.dealTime}" readonly></div></div>
+        ` : "";
+        openMask("maskContract");
+        return;
+      }
+      if (log) {
+        openLog(log.dataset.log);
+      }
+    });
+
+    document.getElementById("btnDelOk").onclick = () => {
+      rows = rows.filter((r) => String(r.id) !== String(pendingDel));
+      closeMask("maskDel");
+      toast("已删除");
+      applyFilter(false);
+    };
+
+    document.getElementById("formEdit").onsubmit = (e) => {
+      e.preventDefault();
+      const id = document.getElementById("eId").value;
+      const row = rows.find((r) => String(r.id) === String(id));
+      if (!row) return;
+      row.customer = document.getElementById("eCustomer").value;
+      row.phone = document.getElementById("ePhone").value;
+      row.region = document.getElementById("eRegion").value;
+      row.industry = document.getElementById("eIndustry").value;
+      row.source = document.getElementById("eSource").value;
+      row.type = document.getElementById("eType").value;
+      row.address = document.getElementById("eAddress").value;
+      row.wechat = document.getElementById("eWechat").value;
+      row.grade = document.getElementById("eGrade").value;
+      row.stage = document.getElementById("eStage").value;
+      row.product = document.getElementById("eProduct").value;
+      row.contact = document.getElementById("eContact").value;
+      row.note = document.getElementById("eNote").value;
+      toast("确认成功");
+      closeMask("maskEdit");
+      applyFilter(false);
+    };
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function nowLocal() {
+      const d = new Date();
+      return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+    }
+    function fmtTime(v) { return v ? v.replace("T", " ") : ""; }
+
+    document.getElementById("wayTags").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-val]");
+      if (!b) return;
+      document.getElementById("fWay").value = b.dataset.val;
+      document.querySelectorAll("#wayTags .tag").forEach((x) => x.classList.toggle("active", x === b));
+    });
+
+    function openFollow(id) {
+      currentFollowId = id;
+      document.getElementById("fRowId").value = id;
+      document.getElementById("formFollow").reset();
+      document.getElementById("fWay").value = "电话";
+      document.querySelectorAll("#wayTags .tag").forEach((x) => x.classList.toggle("active", x.dataset.val === "电话"));
+      document.getElementById("fTime").value = nowLocal();
+      openMask("maskFollow");
+    }
+    function openLog(id) {
+      currentFollowId = id;
+      const row = rows.find((r) => String(r.id) === String(id));
+      const list = follows[id] || [];
+      document.getElementById("logTimeline").innerHTML = list.length
+        ? list.map((item) => `
+            <div class="tl-item">
+              <span class="tl-dot"></span>
+              <div class="tl-date">${item.date}</div>
+              <div class="tl-meta"><span class="tl-tag">${item.way}</span><span>${item.person}</span></div>
+              <div class="tl-note">${item.content}</div>
+            </div>`).join("")
+        : `<div style="color:#8c8c8c;font-size:13px;padding:12px 0;">暂无跟进记录</div>`;
+      openMask("maskLog");
+    }
+
+    document.getElementById("formFollow").onsubmit = (e) => {
+      e.preventDefault();
+      const id = document.getElementById("fRowId").value;
+      const row = rows.find((r) => String(r.id) === String(id));
+      if (!follows[id]) follows[id] = [];
+      follows[id].unshift({
+        date: fmtTime(document.getElementById("fTime").value),
+        way: document.getElementById("fWay").value,
+        person: row ? row.contact : "用户",
+        content: document.getElementById("fContent").value || "（无跟进内容）"
+      });
+      toast("确认保存成功");
+      closeMask("maskFollow");
+    };
+    document.getElementById("logAdd").onclick = () => {
+      closeMask("maskLog");
+      openFollow(currentFollowId);
+    };
+
+    document.querySelectorAll("[data-close]").forEach((el) => {
+      el.addEventListener("click", () => closeMask(el.dataset.close));
+    });
+    document.querySelectorAll(".mask").forEach((mask) => {
+      mask.addEventListener("click", (e) => { if (e.target === mask) mask.classList.remove("show"); });
+    });
+
+    const nav = document.getElementById("sidebarNav");
+    nav.querySelectorAll(".nav-group-btn").forEach((btn) => {
+      btn.addEventListener("click", () => btn.parentElement.classList.toggle("open"));
+    });
+    nav.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const pageName = item.dataset.page;
+        if (pageName === "workbench" || pageName === "marketing" || pageName === "leads" || pageName === "opportunity" || pageName === "contract") return;
+        toast("「" + item.textContent.trim() + "」页面暂未接入");
+      });
+    });
+    document.querySelectorAll("[data-tip]").forEach((el) => {
+      el.addEventListener("click", () => toast(el.dataset.tip));
+    });
+
+    applyFilter(false);
+  </script>
+</body>
+</html>
