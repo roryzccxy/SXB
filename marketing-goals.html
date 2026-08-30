@@ -6,6 +6,7 @@
   <title>营销目标 - CRM</title>
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="css/shell.css" />
+  <script src="js/auth.js"></script>
   <style>
     .kpi-row {
       display: grid;
@@ -415,7 +416,7 @@
     <aside class="sidebar">
       <div class="logo">CRM</div>
       <nav class="nav">
-        <a class="nav-item" href="index.html">
+        <a class="nav-item" href="workbench.html">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
           工作台
         </a>
@@ -508,7 +509,7 @@
           </button>
           <div class="dropdown-panel">
             <button type="button" class="soon">个人中心</button>
-            <button type="button" class="soon">退出登录</button>
+            <button type="button" data-logout>退出登录</button>
           </div>
         </div>
       </header>
