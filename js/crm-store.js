@@ -105,6 +105,11 @@ const CRM = (() => {
       { id: "quarter", name: "季付" },
       { id: "month", name: "月付" }
     ],
+    payStatuses: [
+      { id: "unpaid", name: "未付款" },
+      { id: "partial", name: "部分付款" },
+      { id: "paid", name: "已付清" }
+    ],
     invoiceTypes: [
       { id: "normal", name: "增值税普通票" },
       { id: "special", name: "增值税专用发票" }
