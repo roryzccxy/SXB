@@ -522,7 +522,7 @@
             <select id="fPeriod" title="来源：周期字典；去处：筛选目标记录"></select>
           </div>
           <div class="field">
-            <label title="来源：年份字典。去处：查询列表、汇总卡片、新建/编辑弹窗。">年份</label>
+            <label id="fTimeLabel" title="来源：年份/季度/月份字典。去处：查询列表、汇总卡片、新建/编辑弹窗。">年份</label>
             <select id="fYear"></select>
           </div>
           <div class="field">
@@ -606,10 +606,6 @@
             <label>业务员</label>
             <select id="mPerson"></select>
           </div>
-          <div class="field">
-            <label>产品类型</label>
-            <select id="mProduct"></select>
-          </div>
         </div>
 
         <div class="split" id="splitText">目标设置</div>
@@ -667,6 +663,7 @@
 
     const fPeriod = document.getElementById("fPeriod");
     const fYear = document.getElementById("fYear");
+    const fTimeLabel = document.getElementById("fTimeLabel");
     const fDept = document.getElementById("fDept");
     const fPerson = document.getElementById("fPerson");
     const fProduct = document.getElementById("fProduct");
@@ -674,19 +671,69 @@
     const mYear = document.getElementById("mYear");
     const mDept = document.getElementById("mDept");
     const mPerson = document.getElementById("mPerson");
-    const mProduct = document.getElementById("mProduct");
+
+    const MIN_YEAR = 2026;
+    const MIN_MONTH = 8;
+    const timeLabels = { year: "年份", quarter: "季度", month: "月份" };
+    const timeOptions = (period) => {
+      const years = CRM.dicts.years.filter((y) => y >= MIN_YEAR);
+      if (period === "quarter") {
+        const list = [];
+        years.forEach((y) => {
+          for (let q = 1; q <= 4; q++) {
+            const endMonth = q * 3;
+            if (y > MIN_YEAR || endMonth >= MIN_MONTH) {
+              list.push({ id: y + "-Q" + q, name: y + "年第" + q + "季度" });
+            }
+          }
+        });
+        return list;
+      }
+      if (period === "month") {
+        const list = [];
+        years.forEach((y) => {
+          for (let m = 1; m <= 12; m++) {
+            if (y > MIN_YEAR || m >= MIN_MONTH) {
+              list.push({ id: y + "-" + String(m).padStart(2, "0"), name: y + "年" + m + "月" });
+            }
+          }
+        });
+        return list;
+      }
+      return years.map((y) => ({ id: String(y), name: String(y) }));
+    };
+    const parseTimeValue = (period, val) => {
+      if (period === "quarter" && val.includes("-Q")) {
+        const [y, q] = val.split("-Q");
+        return { year: Number(y), quarter: Number(q) };
+      }
+      if (period === "month" && val.includes("-")) {
+        const [y, m] = val.split("-");
+        return { year: Number(y), month: Number(m) };
+      }
+      return { year: Number(val) };
+    };
+    const fillTimeSelect = (period, keepValue) => {
+      const opts = timeOptions(period);
+      fTimeLabel.textContent = timeLabels[period] || "年份";
+      fillSelect(fYear, opts);
+      if (keepValue && opts.some((o) => String(o.id) === String(keepValue))) {
+        fYear.value = String(keepValue);
+      } else {
+        fYear.value = opts[0] ? String(opts[0].id) : "";
+      }
+    };
 
     fillSelect(fPeriod, CRM.dicts.periods);
-    fillSelect(fYear, CRM.dicts.years.map((y) => ({ id: y, name: y })));
     fillSelect(fDept, CRM.dicts.depts, "全部部门");
     fillSelect(fProduct, CRM.dicts.products);
     fillSelect(mPeriod, CRM.dicts.periods);
     fillSelect(mYear, CRM.dicts.years.map((y) => ({ id: y, name: y })));
     fillSelect(mDept, CRM.dicts.depts, "请选择");
-    fillSelect(mProduct, CRM.dicts.products, "请选择");
     fPeriod.value = "year";
-    fYear.value = "2026";
+    fillTimeSelect("year", "2026");
     fProduct.value = "book";
+    fPeriod.addEventListener("change", () => fillTimeSelect(fPeriod.value));
 
     const refreshPersonOptions = (select, deptId, withAll) => {
       const list = CRM.dicts.people.filter((p) => !deptId || p.deptId === deptId);
@@ -710,19 +757,26 @@
     let editingId = null;
     let goals = CRM.load();
 
-    const filters = () => ({
-      period: fPeriod.value,
-      year: Number(fYear.value),
-      deptId: fDept.value,
-      personId: fPerson.value,
-      productId: fProduct.value
-    });
+    const filters = () => {
+      const slot = parseTimeValue(fPeriod.value, fYear.value);
+      return {
+        period: fPeriod.value,
+        year: slot.year,
+        quarter: slot.quarter,
+        month: slot.month,
+        deptId: fDept.value,
+        personId: fPerson.value,
+        productId: fProduct.value
+      };
+    };
 
     const filtered = () => {
       const f = filters();
       return goals.filter((g) =>
         (!f.period || g.period === f.period) &&
         (!f.year || g.year === f.year) &&
+        (f.period !== "quarter" || !f.quarter || g.quarter === f.quarter) &&
+        (f.period !== "month" || !f.month || g.month === f.month) &&
         (!f.deptId || g.deptId === f.deptId) &&
         (!f.personId || g.personId === f.personId) &&
         (!f.productId || g.productId === f.productId)
@@ -865,16 +919,16 @@
       rateBar.hidden = next === "create";
       ok.hidden = !!readonly;
       ok.textContent = next === "create" ? "确认新建" : "保存修改";
-      ["mPeriod", "mYear", "mDept", "mPerson", "mProduct"].forEach((i) => {
+      ["mPeriod", "mYear", "mDept", "mPerson"].forEach((i) => {
         document.getElementById(i).disabled = next !== "create" || readonly;
       });
       if (next === "create") {
+        const slot = parseTimeValue(fPeriod.value, fYear.value);
         mPeriod.value = fPeriod.value || "year";
-        mYear.value = fYear.value || "2026";
+        mYear.value = String(slot.year || 2026);
         mDept.value = "";
         refreshPersonOptions(mPerson, "", false);
         mPerson.value = "";
-        mProduct.value = fProduct.value || "";
         CRM.metricKeys.forEach((m) => { document.getElementById("c_" + m.key).value = ""; });
       } else {
         const row = goals.find((g) => g.id === id);
@@ -883,7 +937,6 @@
         mDept.value = row.deptId;
         refreshPersonOptions(mPerson, row.deptId, false);
         mPerson.value = row.personId;
-        mProduct.value = row.productId;
         CRM.metricKeys.forEach((m) => {
           document.getElementById("e_" + m.key + "_t").value = row[m.key + "Target"];
           document.getElementById("e_" + m.key + "_a").value = row[m.key + "Actual"];
@@ -924,8 +977,8 @@
 
     document.getElementById("modalOk").addEventListener("click", () => {
       if (mode === "create") {
-        if (!mDept.value || !mPerson.value || !mProduct.value) {
-          toast("请完整选择部门、业务员和产品类型");
+        if (!mDept.value || !mPerson.value) {
+          toast("请完整选择部门和业务员");
           return;
         }
         const person = CRM.person(mPerson.value);
@@ -935,7 +988,7 @@
           year: Number(mYear.value),
           deptId: person.deptId,
           personId: person.id,
-          productId: mProduct.value,
+          productId: fProduct.value || "book",
           leadTarget: +document.getElementById("c_lead").value || 0,
           leadActual: 0,
           customerTarget: +document.getElementById("c_customer").value || 0,
@@ -969,7 +1022,7 @@
     document.getElementById("btnQuery").addEventListener("click", renderTable);
     document.getElementById("btnReset").addEventListener("click", () => {
       fPeriod.value = "year";
-      fYear.value = "2026";
+      fillTimeSelect("year", "2026");
       fDept.value = "";
       refreshPersonOptions(fPerson, "", true);
       fPerson.value = "";

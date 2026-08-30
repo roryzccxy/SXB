@@ -179,7 +179,8 @@
       <div class="modal-head">添加跟进<button class="modal-close" data-close="fuMask" type="button">×</button></div>
       <div class="modal-body">
         <div class="field" style="margin-bottom:10px"><label>跟进时间</label><input id="fu_time" type="datetime-local" /></div>
-        <div class="field"><label>跟进内容</label><textarea id="fu_text" placeholder="请输入跟进内容"></textarea></div>
+        <div class="field" style="margin-bottom:10px"><label>转换商机阶段</label><select id="fu_stage"></select></div>
+        <div class="field"><label id="fu_textLab">跟进内容</label><textarea id="fu_text" placeholder="请输入跟进内容"></textarea></div>
       </div>
       <div class="modal-foot">
         <button class="btn btn-primary btn-md" id="fuOk" type="button">确认</button>
@@ -224,6 +225,8 @@
     const cAmt = document.getElementById("c_amt");
     const fuTime = document.getElementById("fu_time");
     const fuText = document.getElementById("fu_text");
+    const fuStage = document.getElementById("fu_stage");
+    const fuTextLab = document.getElementById("fu_textLab");
 
     const fill = (el, list, all) => { el.innerHTML = `<option value="">${all}</option>` + list.map((x) => `<option value="${x.id}">${x.name}</option>`).join(""); };
     fill(fProduct, CRM.dicts.products, "请选择");
@@ -232,6 +235,7 @@
     fill(eProduct, CRM.dicts.products, "请选择");
     fill(eLevel, CRM.dicts.oppLevels, "请选择");
     fill(eStage, CRM.dicts.oppStages, "请选择");
+    fill(fuStage, CRM.dicts.oppStages.filter((x) => x.id !== "win"), "请选择");
 
     const minDT = () => {
       const d = new Date();
@@ -277,7 +281,7 @@
     const headers = {
       all: ["#", "意向产品", "客户名称", "联系人", "联系电话", "商机阶段", "商机等级", "说明", "操作"],
       intent: ["#", "意向产品", "客户/公司名称", "联系电话", "最后一次跟进时间", "商机阶段", "商机等级", "说明", "操作"],
-      win: ["#", "合同", "客户名称", "联系人", "联系电话", "合同金额", "成交时间", "商机阶段", "商机等级", "操作"],
+      win: ["#", "合同", "客户名称", "联系人", "联系电话", "合同类型", "合同金额", "成交时间", "商机阶段", "商机等级", "操作"],
       lost: ["#", "意向产品", "客户名称", "联系人", "联系电话", "流失时间", "商机阶段", "商机等级", "流失说明", "操作"]
     };
 
@@ -293,7 +297,12 @@
       const st = fStage.value;
       const p = prod(o.productId);
       if (st === "intent") return [i, p, o.customerName, o.phone, o.lastFollowAt || "—", badge(o.stageId), o.levelId, o.note || "—", ops(o)];
-      if (st === "win") return [i, o.contractNo || "—", o.customerName, o.contact, o.phone, (o.contractAmount || 0) + "万", o.closedAt || "—", badge(o.stageId), o.levelId, ops(o)];
+      if (st === "win") {
+        const cts = CRM.loadContracts();
+        const ct = cts.find((c) => c.oppId === o.id || (o.contractNo && c.no === o.contractNo));
+        const typeId = (ct && ct.typeId) || CRM.productToType(o.productId);
+        return [i, o.contractNo || "—", o.customerName, o.contact, o.phone, CRM.dictName("contractTypes", typeId), (o.contractAmount || 0) + "万", o.closedAt || "—", badge(o.stageId), o.levelId, ops(o)];
+      }
       if (st === "lost") return [i, p, o.customerName, o.contact, o.phone, o.lostAt || "—", badge(o.stageId), o.levelId, o.lostReason || o.note || "—", ops(o)];
       return [i, p, o.customerName, o.contact, o.phone, CRM.dictName("oppStages", o.stageId), o.levelId, o.note || o.lostReason || "—", ops(o)];
     };
@@ -351,25 +360,54 @@
 
     const openContract = (id) => { location.href = "contracts.html?opp=" + encodeURIComponent(id); };
 
+    const syncFuText = () => {
+      const lost = fuStage.value === "lost";
+      fuTextLab.textContent = lost ? "流失说明" : "跟进内容";
+      fuText.placeholder = lost ? "请输入流失说明" : "请输入跟进内容";
+    };
+    fuStage.addEventListener("change", syncFuText);
+
     const openFollow = (id) => {
-      currentId = id; fu_time.value = minDT(); fu_text.value = "";
+      currentId = id;
+      const o = opps.find((x) => x.id === id);
+      fu_time.value = minDT();
+      fu_text.value = "";
+      fuStage.value = o.stageId || "intent";
+      syncFuText();
       document.getElementById("fuMask").classList.add("show");
     };
     document.getElementById("fuOk").addEventListener("click", () => {
       const o = opps.find((x) => x.id === currentId);
+      const nextStage = fuStage.value || o.stageId;
+      if (nextStage === "lost" && !fu_text.value.trim()) {
+        toast("流失商机请填写流失说明");
+        return;
+      }
       o.lastFollowAt = (fu_time.value || minDT()).replace("T", " ") + ":00";
       if (fu_text.value) o.note = fu_text.value;
+      o.stageId = nextStage;
+      if (nextStage === "lost") {
+        o.lostReason = fu_text.value;
+        o.lostAt = o.lostAt || o.lastFollowAt;
+      }
       CRM.saveOpps(opps); syncLeadStage(o);
       const leads = CRM.loadLeads();
       const lead = leads.find((l) => l.id === o.leadId);
       if (lead) {
         lead.followContent = fu_text.value || lead.followContent;
         lead.lastFollowAt = o.lastFollowAt;
-        lead.logs.unshift({ at: o.lastFollowAt, type: "follow", status: "following", user: "用户", text: "跟进内容：" + (fu_text.value || "—") });
+        lead.oppStageId = nextStage;
+        if (nextStage === "lost") {
+          lead.lostAt = o.lostAt;
+          lead.lostReason = fu_text.value;
+        }
+        const logText = nextStage === "lost" ? ("流失说明：" + (fu_text.value || "—")) : ("跟进内容：" + (fu_text.value || "—"));
+        lead.logs.unshift({ at: o.lastFollowAt, type: "follow", status: nextStage === "lost" ? "opportunity" : "following", user: "用户", text: logText });
         CRM.saveLeads(leads);
       }
       document.getElementById("fuMask").classList.remove("show");
-      toast("跟进已回写线索最后跟进时间"); render();
+      toast(nextStage === "lost" ? "已转为流失商机" : "跟进已回写线索最后跟进时间");
+      render();
     });
 
     tbody.addEventListener("click", (e) => {

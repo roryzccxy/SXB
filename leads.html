@@ -48,11 +48,23 @@
       gap: 6px;
     }
     .range input { flex: 1; }
+    .filter-row2 {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-row2 .field {
+      min-width: 280px;
+      flex: 0 1 320px;
+    }
     .actions {
       display: flex;
       gap: 8px;
-      margin-top: 14px;
       align-items: center;
+      flex-wrap: wrap;
+      padding-bottom: 1px;
     }
     .btn-md { height: 32px; padding: 0 14px; font-size: var(--fs-sm); }
     .flow-note {
@@ -93,21 +105,39 @@
       height: 2px;
       background: var(--primary);
     }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td {
-      padding: 10px 10px;
+      padding: 12px 12px;
       text-align: left;
-      border-top: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
-    th { background: #fafafa; color: var(--text-secondary); font-weight: 600; }
+    th {
+      background: #f7f8fb;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    tbody tr:hover td { background: #f7fbff; }
+    .pill {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      line-height: 20px;
+    }
+    .pill-following { color: #d46b08; background: #fff7e6; }
+    .pill-abandon { color: var(--danger); background: #fff1f0; }
+    .pill-invalid { color: #d4380d; background: #fff2e8; }
+    .pill-opportunity { color: var(--primary); background: #e6f7ff; }
+    .ops { display: inline-flex; align-items: center; gap: 10px; }
     .link {
       border: 0;
       background: none;
       color: var(--primary);
       cursor: pointer;
-      font-size: 12px;
-      padding: 0 6px 0 0;
+      font-size: 13px;
+      padding: 0;
     }
     .pager-bar {
       display: flex;
@@ -217,37 +247,40 @@
       gap: 12px;
       padding: 12px 22px 20px;
     }
-    .row-form { display: grid; grid-template-columns: 88px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; }
+    .row-form { display: grid; grid-template-columns: 128px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; }
     .row-form > label { padding-top: 6px; font-size: var(--fs-sm); }
-    .timeline { position: relative; padding-left: 88px; margin: 8px 0 20px; }
+    .timeline { position: relative; padding-left: 120px; margin: 8px 0 20px; }
     .timeline::before {
       content: "";
       position: absolute;
-      left: 72px;
+      left: 96px;
       top: 8px;
       bottom: 8px;
       width: 1px;
       background: #e8e8e8;
     }
-    .tl-item { position: relative; margin-bottom: 18px; }
-    .tl-date { text-align: center; color: var(--text-secondary); font-size: 12px; margin: 0 0 8px -88px; }
+    .tl-item { position: relative; margin-bottom: 18px; padding-left: 8px; }
+    .tl-head { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .tl-date { color: var(--text-secondary); font-size: 12px; }
     .tl-time {
       position: absolute;
-      left: -88px;
+      left: -116px;
       top: 2px;
-      width: 72px;
+      width: 78px;
       text-align: right;
       font-size: 12px;
       color: var(--text-secondary);
+      line-height: 1.2;
     }
     .tl-dot {
       position: absolute;
-      left: -20px;
-      top: 6px;
+      left: -28px;
+      top: 5px;
       width: 10px;
       height: 10px;
       border-radius: 50%;
       background: #36cfc9;
+      box-shadow: 0 0 0 3px #fff;
     }
     .tl-dot.following { background: #fa8c16; }
     .tl-dot.invalid { background: #ff7a45; }
@@ -376,12 +409,14 @@
             <div class="field"><label title="来源：区域字典">地区</label><select id="fRegion"></select></div>
             <div class="field"><label>行业</label><input id="fIndustry" placeholder="请输入行业" /></div>
             <div class="field"><label>跟进时间</label><div class="range"><input id="fFollowFrom" type="date" /><span>-</span><input id="fFollowTo" type="date" /></div></div>
-            <div class="field"><label>创建时间</label><div class="range"><input id="fCreateFrom" type="date" /><span>-</span><input id="fCreateTo" type="date" /></div></div>
           </div>
-          <div class="actions">
-            <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置搜索条件</button>
-            <button class="btn btn-primary btn-md" id="btnQuery" type="button">线索列表</button>
-            <button class="btn btn-primary btn-md" id="btnAdd" type="button">添加线索</button>
+          <div class="filter-row2">
+            <div class="field"><label>创建时间</label><div class="range"><input id="fCreateFrom" type="date" /><span>-</span><input id="fCreateTo" type="date" /></div></div>
+            <div class="actions">
+              <button class="btn btn-primary btn-md" id="btnAdd" type="button">添加线索</button>
+              <button class="btn btn-primary btn-md" id="btnQuery" type="button">查询</button>
+              <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置搜索条件</button>
+            </div>
           </div>
           <div class="flow-note">客户信息来自「添加线索」；业务员来自员工字典，分配后回写列表筛选；跟进状态来自「添加跟进」并生成详情时间轴；查看线索仅可改跟进内容与下次跟进时间，保存后「最后跟进时间」记为当前时间；新增线索会计入营销目标对应业务员的线索实际数。</div>
         </section>
@@ -405,7 +440,7 @@
                 <th>跟进结果</th>
                 <th>是否添加微信</th>
                 <th>最后添加跟进时间</th>
-                <th>下次跟进时间</th>
+                <th id="thNext">下次跟进时间</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -434,7 +469,6 @@
           <div class="field"><label>来源渠道</label><select id="l_source"></select></div>
           <div class="field"><label>企业形式</label><select id="l_company"></select></div>
           <div class="field"><label>跟进结果</label><select id="l_result"></select></div>
-          <div class="field"><label>线索分类</label><select id="l_cate"></select></div>
           <div class="field"><label>是否添加微信</label><select id="l_wechat"></select></div>
           <div class="field"><label>预计下次跟进时间</label><input id="l_next" type="datetime-local" /></div>
           <div class="field span-2"><label>跟进内容</label>
@@ -455,6 +489,7 @@
       <div class="modal-body">
         <div class="row-form"><label>跟进状态</label><select id="fu_status"></select></div>
         <div class="row-form"><label>跟进时间</label><input id="fu_time" type="datetime-local" /></div>
+        <div class="row-form" id="fuNextRow"><label>预计下次跟进时间</label><input id="fu_next" type="datetime-local" /></div>
         <div class="row-form" id="fuExtra"><label id="fuExtraLabel">跟进内容</label><textarea id="fu_text" placeholder="请输入跟进内容"></textarea></div>
       </div>
       <div class="modal-foot">
@@ -491,7 +526,6 @@
           <div class="field"><label>来源渠道</label><select id="o_source" disabled></select></div>
           <div class="field"><label>企业形式</label><select id="o_company" disabled></select></div>
           <div class="field"><label>跟进结果</label><select id="o_result" disabled></select></div>
-          <div class="field"><label>线索分类</label><select id="o_cate" disabled></select></div>
           <div class="field"><label>是否添加微信</label><select id="o_wechat" disabled></select></div>
           <div class="field"><label>商机等级</label><select id="o_level"></select></div>
           <div class="field"><label>商机阶段</label><select id="o_stage"></select></div>
@@ -548,14 +582,12 @@
     fill(document.getElementById("l_source"), CRM.dicts.sources);
     fill(document.getElementById("l_company"), CRM.dicts.companyTypes);
     fill(document.getElementById("l_result"), CRM.dicts.followResults);
-    fill(document.getElementById("l_cate"), CRM.dicts.categories);
     fill(document.getElementById("l_wechat"), CRM.dicts.wechat);
     fill(document.getElementById("o_region"), CRM.dicts.regions);
     fill(document.getElementById("o_industry"), CRM.dicts.industries);
     fill(document.getElementById("o_source"), CRM.dicts.sources);
     fill(document.getElementById("o_company"), CRM.dicts.companyTypes);
     fill(document.getElementById("o_result"), CRM.dicts.followResults);
-    fill(document.getElementById("o_cate"), CRM.dicts.categories);
     fill(document.getElementById("o_wechat"), CRM.dicts.wechat);
     fill(document.getElementById("o_stage"), CRM.dicts.oppStages);
     fill(document.getElementById("o_level"), CRM.dicts.oppLevels);
@@ -581,6 +613,7 @@
 
     document.getElementById("l_next").min = minDT();
     document.getElementById("fu_time").min = minDT();
+    document.getElementById("fu_next").min = minDT();
 
     let leads = CRM.loadLeads();
     let tab = "all";
@@ -615,30 +648,45 @@
       const pages = Math.max(1, Math.ceil(rows.length / size));
       if (page > pages) page = pages;
       const slice = rows.slice((page - 1) * size, page * size);
-      const followTabs = ["following", "abandon", "invalid"];
+      const showNext = tab !== "abandon" && tab !== "invalid";
+      document.getElementById("thNext").style.display = showNext ? "" : "none";
+      const pillClass = {
+        following: "pill pill-following",
+        abandon: "pill pill-abandon",
+        invalid: "pill pill-invalid",
+        opportunity: "pill pill-opportunity"
+      };
       tbody.innerHTML = slice.map((l) => {
-        const extra = followTabs.includes(tab) ? `<button class="link" data-act="follow" data-id="${l.id}" type="button">添加跟进</button>` : "";
-        const conv = (tab === "opportunity" || tab === "following" || (tab === "all" && l.followResult === "following"))
-          ? `<button class="link" data-act="convert" data-id="${l.id}" type="button">转商机</button>` : "";
+        let ops = "";
+        if (tab === "abandon" || tab === "invalid") {
+          ops = `<button class="link" data-act="detail" data-id="${l.id}" type="button">详情</button>` +
+            `<button class="link" data-act="delete" data-id="${l.id}" type="button">删除</button>`;
+        } else {
+          ops = `<button class="link" data-act="view" data-id="${l.id}" type="button">查看</button>`;
+          if (tab !== "opportunity") {
+            ops += `<button class="link" data-act="assign" data-id="${l.id}" type="button">分配</button>`;
+            if (tab === "following") {
+              ops += `<button class="link" data-act="follow" data-id="${l.id}" type="button">添加跟进</button>`;
+            }
+            if (tab === "following" || (tab === "all" && l.followResult === "following")) {
+              ops += `<button class="link" data-act="convert" data-id="${l.id}" type="button">转商机</button>`;
+            }
+          }
+          ops += `<button class="link" data-act="detail" data-id="${l.id}" type="button">详情</button>`;
+        }
         return `<tr>
           <td>${l.name || "—"}</td><td>${l.phone || "—"}</td>
           <td>${CRM.dictName("regions", l.regionId)}</td>
           <td>${CRM.dictName("industries", l.industryId)}</td>
           <td>${CRM.dictName("sources", l.sourceId)}</td>
           <td>${CRM.dictName("companyTypes", l.companyTypeId)}</td>
-          <td>${CRM.dictName("followResults", l.followResult)}</td>
+          <td><span class="${pillClass[l.followResult] || "pill"}">${CRM.dictName("followResults", l.followResult)}</span></td>
           <td>${CRM.dictName("wechat", l.wechatId)}</td>
           <td>${l.lastFollowAt || "—"}</td>
-          <td>${l.nextFollowAt || "—"}</td>
-          <td>
-            <button class="link" data-act="view" data-id="${l.id}" type="button">查看</button>
-            <button class="link" data-act="assign" data-id="${l.id}" type="button">分配</button>
-            ${extra}
-            ${conv}
-            <button class="link" data-act="detail" data-id="${l.id}" type="button">详情</button>
-          </td>
+          ${showNext ? `<td>${l.nextFollowAt || "—"}</td>` : ""}
+          <td><div class="ops">${ops}</div></td>
         </tr>`;
-      }).join("") || `<tr><td colspan="11">暂无数据</td></tr>`;
+      }).join("") || `<tr><td colspan="${showNext ? 11 : 10}">暂无数据</td></tr>`;
       pageInfo.textContent = `共 ${rows.length} 条`;
       pagesBox.innerHTML = Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === page ? "on" : ""}" data-p="${i + 1}" type="button">${i + 1}</button>`).join("");
     };
@@ -680,7 +728,7 @@
     });
 
     const setLeadLock = (lock) => {
-      ["l_name", "l_phone", "l_region", "l_industry", "l_source", "l_company", "l_result", "l_cate", "l_wechat"].forEach((id) => {
+      ["l_name", "l_phone", "l_region", "l_industry", "l_source", "l_company", "l_result", "l_wechat"].forEach((id) => {
         document.getElementById(id).disabled = lock;
       });
       document.getElementById("l_next").disabled = false;
@@ -695,7 +743,6 @@
       l_source.value = row?.sourceId || CRM.dicts.sources[0].id;
       l_company.value = row?.companyTypeId || CRM.dicts.companyTypes[0].id;
       l_result.value = row?.followResult || "following";
-      l_cate.value = row?.categoryId || CRM.dicts.categories[0].id;
       l_wechat.value = row?.wechatId || "no";
       l_next.value = toLocal(row?.nextFollowAt);
       l_content.value = row?.followContent || "";
@@ -730,7 +777,7 @@
           sourceId: l_source.value,
           companyTypeId: l_company.value,
           followResult: l_result.value,
-          categoryId: l_cate.value,
+          categoryId: "c1",
           wechatId: l_wechat.value,
           followContent: l_content.value,
           nextFollowAt: fromLocal(l_next.value),
@@ -764,6 +811,7 @@
       const [lab, ph] = map[st] || map.following;
       fuExtraLabel.textContent = lab;
       fu_text.placeholder = ph;
+      document.getElementById("fuNextRow").style.display = st === "following" ? "" : "none";
     };
     document.getElementById("fu_status").addEventListener("change", syncFuExtra);
 
@@ -772,6 +820,7 @@
       const row = leads.find((x) => x.id === id);
       fu_status.value = ["following", "abandon", "invalid"].includes(row.followResult) ? row.followResult : "following";
       fu_time.value = minDT();
+      fu_next.value = toLocal(row.nextFollowAt);
       fu_text.value = "";
       syncFuExtra();
       document.getElementById("fuMask").classList.add("show");
@@ -784,6 +833,7 @@
       const from = row.followResult;
       row.followResult = st;
       row.lastFollowAt = t;
+      if (st === "following") row.nextFollowAt = fromLocal(fu_next.value);
       const label = { following: "跟进内容", invalid: "无效说明", abandon: "放弃说明" }[st];
       row.logs.unshift({
         at: t,
@@ -829,10 +879,9 @@
           ? `跟进状态 [${CRM.dictName("followResults", log.from)}] → [${CRM.dictName("followResults", log.status)}]<br>`
           : log.status ? `跟进状态 [${CRM.dictName("followResults", log.status)}]<br>` : "";
         return `<div class="tl-item">
-          <div class="tl-date">${date}</div>
           <div class="tl-time">${time}</div>
           <span class="tl-dot ${st}"></span>
-          <div>${title}</div>
+          <div class="tl-head"><span class="tl-date">${date}</span><div>${title}</div></div>
           <div class="tl-box">${extra}${log.text}</div>
         </div>`;
       }).join("");
@@ -845,7 +894,6 @@
         <div><b>企业形式</b>${v("companyTypes", row.companyTypeId)}</div>
         <div><b>来源渠道</b>${v("sources", row.sourceId)}</div>
         <div><b>跟进结果</b>${v("followResults", row.followResult)}</div>
-        <div><b>线索分类</b>${v("categories", row.categoryId)}</div>
         <div><b>是否添加微信</b>${v("wechat", row.wechatId)}</div>
         ${row.followResult === "opportunity" ? `
         <div><b>商机阶段</b>${v("oppStages", row.oppStageId)}</div>
@@ -864,7 +912,6 @@
       o_source.value = row.sourceId || "";
       o_company.value = row.companyTypeId || "";
       o_result.value = "opportunity";
-      o_cate.value = row.categoryId || "";
       o_wechat.value = row.wechatId || "";
       o_stage.value = "intent";
       o_stage.disabled = true;
@@ -905,6 +952,12 @@
       else if (b.dataset.act === "assign") openAssign(b.dataset.id);
       else if (b.dataset.act === "detail") openDetail(b.dataset.id);
       else if (b.dataset.act === "convert") openConvert(b.dataset.id);
+      else if (b.dataset.act === "delete") {
+        leads = leads.filter((x) => x.id !== b.dataset.id);
+        CRM.saveLeads(leads);
+        toast("已删除");
+        render();
+      }
     });
 
     if (location.search.indexOf("add=1") >= 0) openLead("add");

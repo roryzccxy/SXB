@@ -130,14 +130,13 @@
             <h3>客户列表<span class="count" id="listCount">共 0 条记录</span></h3>
             <div class="list-tools">
               <button class="btn btn-ghost btn-md soon" type="button">导出</button>
-              <button class="btn btn-primary btn-md" id="btnCreate" type="button">+ 新增客户</button>
             </div>
           </div>
           <table>
             <thead>
               <tr>
-                <th>客户编号</th><th>客户/公司名称</th><th>联系人</th><th>联系手机</th><th>所属区域</th>
-                <th>所属行业</th><th>企业形式</th><th>客户来源</th><th>所属业务员</th><th>客户状态</th><th>创建时间</th><th>操作</th>
+                <th>公司名称</th><th>联系人</th><th>联系手机</th><th>所属区域</th>
+                <th>所属行业</th><th>企业形式</th><th>客户来源</th><th>所属业务员</th><th>创建时间</th><th>操作</th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -226,7 +225,6 @@
       $("listCount").textContent = `共 ${rows.length} 条记录`;
       $("pageInfo").textContent = `共 ${rows.length} 条记录`;
       $("tbody").innerHTML = rows.slice((page - 1) * size, page * size).map((c) => `<tr>
-        <td>${c.no}</td>
         <td>${c.name || "—"}</td>
         <td>${c.contact || "—"}</td>
         <td>${c.phone || "—"}</td>
@@ -235,10 +233,9 @@
         <td>${CRM.dictName("companyTypes", c.companyTypeId)}</td>
         <td>${CRM.dictName("sources", c.sourceId)}</td>
         <td>${(CRM.person(c.ownerId) || {}).name || "—"}</td>
-        <td><span class="st st-${c.statusId}">${CRM.dictName("customerStatuses", c.statusId)}</span></td>
         <td>${c.createdAt || "—"}</td>
         <td><button class="link" data-id="${c.id}" type="button">编辑</button></td>
-      </tr>`).join("") || `<tr><td colspan="12">暂无客户</td></tr>`;
+      </tr>`).join("") || `<tr><td colspan="10">暂无客户</td></tr>`;
       $("pages").innerHTML = Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === page ? "on" : ""}" data-p="${i + 1}" type="button">${i + 1}</button>`).join("");
     };
 
@@ -289,7 +286,6 @@
       remark: $("c_note").value.trim()
     });
 
-    $("btnCreate").addEventListener("click", openCreate);
     $("cuOk").addEventListener("click", () => {
       const data = collect();
       if (!data.name || !data.contact || !data.phone) { toast("请填写客户名称、联系人和手机号"); return; }
@@ -325,7 +321,6 @@
     $("btnJump").addEventListener("click", () => { page = Math.max(1, Number($("jump").value) || 1); render(); });
     $("tbody").addEventListener("click", (e) => { const b = e.target.closest("[data-id]"); if (b) openEdit(b.dataset.id); });
 
-    if (new URLSearchParams(location.search).get("add") === "1") openCreate();
     render();
   </script>
 </body>
