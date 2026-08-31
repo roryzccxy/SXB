@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>角色权限 - CRM</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <script src="js/auth.js"></script>
+  <style>
+    .toolbar { padding: 16px; margin-bottom: 16px; }
+    .filter-grid { display: grid; grid-template-columns: auto 1fr auto 1fr auto auto auto 1fr auto; gap: 10px 8px; align-items: center; }
+    .filter-grid label { font-size: var(--fs-sm); color: var(--text); text-align: right; white-space: nowrap; }
+    .filter-grid input, .filter-grid select { height: 32px; border: 1px solid #d9d9d9; border-radius: var(--radius-sm); padding: 0 10px; font-size: var(--fs-sm); width: 100%; background: #fff; }
+    .dates { display: flex; align-items: center; gap: 6px; }
+    .dates span { color: var(--text-secondary); font-size: 12px; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-md { height: 32px; padding: 0 14px; font-size: var(--fs-sm); }
+    .list-card { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 10px 8px; text-align: left; border-top: 1px solid #f0f0f0; white-space: nowrap; }
+    th { background: #fafafa; color: var(--text-secondary); font-weight: 600; }
+    .ops button { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12px; padding: 0 10px 0 0; }
+    .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; }
+    .sc-all { background: var(--primary-soft); color: var(--primary); }
+    .sc-dept, .sc-self { background: #f5f5f5; color: #595959; }
+    .st-on { background: #f6ffed; color: var(--success); }
+    .st-off { background: #fff1f0; color: var(--danger); }
+    .num { font-weight: 600; }
+    .pager-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: var(--fs-xs); color: var(--text-secondary); }
+    .pager-right { display: flex; align-items: center; gap: 6px; }
+    .pager-bar button { min-width: 24px; height: 24px; border: 1px solid #d9d9d9; background: #fff; border-radius: 4px; cursor: pointer; }
+    .pager-bar button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .pager-bar button:disabled { opacity: 0.45; cursor: default; }
+    .mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; align-items: center; justify-content: center; padding: 16px; }
+    .mask.show { display: flex; }
+    .modal { width: 640px; max-width: 100%; background: #fff; border-radius: var(--radius); max-height: calc(100vh - 24px); overflow: auto; position: relative; }
+    .modal.wide { width: 720px; }
+    .modal-head { height: 44px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; position: sticky; top: 0; font-weight: 600; z-index: 1; }
+    .modal-close { position: absolute; right: 12px; top: 0; height: 44px; border: 0; background: none; color: #fff; font-size: 22px; cursor: pointer; }
+    .modal-body { padding: 18px 22px 8px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 12px 22px 20px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    .field label { display: block; font-size: var(--fs-xs); color: var(--text-secondary); margin-bottom: 6px; }
+    .field input, .field select, .field textarea { height: 32px; border: 1px solid #d9d9d9; border-radius: var(--radius-sm); padding: 0 10px; font-size: var(--fs-sm); width: 100%; background: #fff; }
+    .field textarea { height: 64px; padding: 8px; resize: vertical; }
+    .full { grid-column: 1 / -1; }
+    .tree { border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 12px; max-height: 280px; overflow: auto; font-size: 13px; }
+    .tree-g { margin: 8px 0 4px; font-weight: 600; }
+    .tree label { display: flex; align-items: center; gap: 8px; padding: 4px 0 4px 18px; cursor: pointer; }
+    .tree .root { padding-left: 0; }
+    .user-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; }
+    .user-top select { height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 8px; flex: 1; }
+    .person { display: flex; align-items: center; gap: 8px; }
+    .ava { width: 28px; height: 28px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+    .tip { font-size: 12px; color: var(--text-secondary); margin: 0 0 8px; }
+    .links { font-size: 12px; margin: 0 0 12px; }
+    .links a { color: var(--primary); text-decoration: none; margin-right: 16px; }
+    @media (max-width: 1200px) { .filter-grid { grid-template-columns: auto 1fr auto 1fr; } .filter-actions { grid-column: 1 / -1; } }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">CRM</div>
+      <nav class="nav">
+        <a class="nav-item" href="workbench.html">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16l3-4 3 2 4-6"/></svg>销售中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="marketing-goals.html">营销目标</a>
+            <a class="nav-item" href="leads.html">线索管理</a>
+            <a class="nav-item" href="opportunities.html">商机管理</a>
+            <a class="nav-item" href="contracts.html">合同管理</a>
+            <a class="nav-item" href="customers.html">客户管理</a>
+            <a class="nav-item" href="sales-performance.html">销售业绩</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.5-3 2.8-5 5-5s4.5 2 5 5"/><path d="M16 8h5M18.5 5.5v5"/></svg>客户中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">政务服务</button>
+            <button class="nav-item" data-page="pending" type="button">代账服务</button>
+            <a class="nav-item" href="addresses.html">地址管理</a>
+            <a class="nav-item" href="customer-items.html">客户物品</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>运营中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="reimbursements.html">财务报销</a>
+            <a class="nav-item" href="reports.html">经营报表</a>
+            <a class="nav-item" href="personnel.html">人事管理</a>
+            <a class="nav-item" href="salary.html">薪资管理</a>
+            <a class="nav-item" href="employees.html">员工管理</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>系统管理</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item active" href="roles.html">角色权限</a>
+            <button class="nav-item" data-page="pending" type="button">字典管理</button>
+            <button class="nav-item" data-page="pending" type="button">菜单管理</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="header">
+        <div class="dropdown" id="mailDrop">
+          <button class="icon-btn" type="button" data-toggle="mailDrop" aria-label="消息"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg></button>
+          <div class="dropdown-panel"><div class="empty">暂无新消息</div></div>
+        </div>
+        <button class="icon-btn soon" type="button" aria-label="帮助"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 17v-1M12 8a2.2 2.2 0 0 1 1 4c-.6.5-1 1-1 2"/></svg></button>
+        <div class="dropdown" id="userDrop">
+          <button class="user-chip" type="button" data-toggle="userDrop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 19c1-4 3.5-6 7-6s6 2 7 6"/></svg>用户</button>
+          <div class="dropdown-panel"><button type="button" class="soon">个人中心</button><button type="button" data-logout>退出登录</button></div>
+        </div>
+      </header>
+      <main class="content">
+        <section class="card toolbar">
+          <div class="filter-grid">
+            <label>角色名称</label><input id="fName" placeholder="请输入角色名称" />
+            <label>状态</label><select id="fStatus"></select>
+            <label>创建时间</label>
+            <div class="dates">
+              <input id="fFrom" type="date" />
+              <span>至</span>
+              <input id="fTo" type="date" />
+            </div>
+            <label>创建人</label><input id="fCreator" placeholder="请输入创建人" />
+            <div class="filter-actions">
+              <button class="btn btn-primary btn-md" id="btnQuery" type="button">查询</button>
+              <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置</button>
+            </div>
+          </div>
+        </section>
+        <section class="card list-card">
+          <table>
+            <thead>
+              <tr>
+                <th>角色编号</th><th>角色名称</th><th>角色描述</th><th>权限范围</th>
+                <th>关联用户数</th><th>创建时间</th><th>创建人</th><th>状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="pager-bar">
+            <span id="pageInfo">共 0 条</span>
+            <div class="pager-right" id="pages"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="mask" id="editMask">
+    <div class="modal">
+      <div class="modal-head">权限编辑<button class="modal-close" data-close="editMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="links" id="editLinks"></div>
+        <div class="two">
+          <div class="field"><label>角色名称</label><input id="r_name" /></div>
+          <div class="field"><label>权限范围</label><select id="r_scope"></select></div>
+          <div class="field full"><label>角色描述</label><textarea id="r_desc"></textarea></div>
+          <div class="field"><label>状态</label><select id="r_status"></select></div>
+          <div class="field"><label>创建人</label><input id="r_creator" disabled /></div>
+          <div class="field full"><label>菜单与功能权限</label>
+            <div class="tree" id="r_tree"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="editMask" type="button">取消</button>
+        <button class="btn btn-primary btn-md" id="btnSave" type="button">确认保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="userMask">
+    <div class="modal wide">
+      <div class="modal-head">权限用户<button class="modal-close" data-close="userMask" type="button">×</button></div>
+      <div class="modal-body">
+        <p class="tip" id="userTip">关联员工来自员工管理在职名单，绑定后「角色」列与登录菜单同步。</p>
+        <div class="user-top">
+          <select id="uPick"></select>
+          <button class="btn btn-primary btn-md" id="btnAddUser" type="button">添加用户</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>人员</th><th>工号</th><th>部门</th><th>岗位</th><th>手机号</th><th>操作</th></tr>
+          </thead>
+          <tbody id="userBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="userMask" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/crm-store.js"></script>
+  <script>
+    const toast = (m) => { const el = document.createElement("div"); el.className = "toast"; el.textContent = m; document.getElementById("toasts").appendChild(el); setTimeout(() => el.remove(), 1800); };
+    document.querySelectorAll(".nav-group-btn").forEach((b) => b.addEventListener("click", () => b.parentElement.classList.toggle("open")));
+    document.querySelectorAll("[data-page=pending],.soon").forEach((el) => el.addEventListener("click", () => toast("功能即将开放")));
+    document.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", (e) => { e.stopPropagation(); document.querySelectorAll(".dropdown").forEach((d) => d.classList.toggle("open", d.id === btn.dataset.toggle && !d.classList.contains("open"))); });
+    });
+    document.addEventListener("click", () => document.querySelectorAll(".dropdown").forEach((d) => d.classList.remove("open")));
+    document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => document.getElementById(b.dataset.close).classList.remove("show")));
+
+    const $ = (id) => document.getElementById(id);
+    const fillSel = (el, list, all) => { el.innerHTML = `<option value="">${all}</option>` + list.map((x) => `<option value="${x.id}">${x.name}</option>`).join(""); };
+    fillSel($("fStatus"), CRM.dicts.roleStatuses, "筛选");
+    fillSel($("r_scope"), CRM.dicts.roleScopes, "请选择");
+    fillSel($("r_status"), CRM.dicts.roleStatuses, "请选择");
+
+    let list = CRM.loadRoles();
+    let page = 1;
+    const pageSize = 10;
+    let query = {};
+    let editingId = "";
+    let userRoleId = "";
+
+    const leaves = (nodes) => {
+      const out = [];
+      (nodes || []).forEach((n) => {
+        if (n.children) out.push(...leaves(n.children));
+        else out.push(n.id);
+      });
+      return out;
+    };
+    const allLeaves = leaves(CRM.menuTree);
+
+    const filtered = () => list.filter((r) => {
+      if (query.id && r.id !== query.id) return false;
+      if (query.name && !(r.name || "").includes(query.name)) return false;
+      if (query.status && r.statusId !== query.status) return false;
+      if (query.creator && !(r.creator || "").includes(query.creator)) return false;
+      if (query.from && (r.createdAt || "") < query.from) return false;
+      if (query.to && (r.createdAt || "") > query.to) return false;
+      return true;
+    });
+
+    const render = () => {
+      list = CRM.loadRoles();
+      const rows = filtered();
+      const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+      if (page > pages) page = pages;
+      $("pageInfo").textContent = `共 ${rows.length} 条`;
+      $("tbody").innerHTML = rows.slice((page - 1) * pageSize, page * pageSize).map((r) => {
+        const n = CRM.roleUsers(r.id).length;
+        return `<tr>
+          <td>${r.no}</td><td>${r.name}</td><td>${r.desc || "—"}</td>
+          <td><span class="tag sc-${r.scopeId}">${CRM.dictName("roleScopes", r.scopeId)}</span></td>
+          <td class="num">${n}</td>
+          <td>${r.createdAt || "—"}</td><td>${r.creator || "—"}</td>
+          <td><span class="tag st-${r.statusId}">${CRM.dictName("roleStatuses", r.statusId)}</span></td>
+          <td class="ops"><button data-act="edit" data-id="${r.id}" type="button">编辑</button><button data-act="users" data-id="${r.id}" type="button">用户</button></td>
+        </tr>`;
+      }).join("") || `<tr><td colspan="9">暂无角色</td></tr>`;
+      $("pages").innerHTML = `<button type="button" data-p="${page - 1}" ${page <= 1 ? "disabled" : ""}>‹</button>` +
+        Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === page ? "on" : ""}" data-p="${i + 1}" type="button">${i + 1}</button>`).join("") +
+        `<button type="button" data-p="${page + 1}" ${page >= pages ? "disabled" : ""}>›</button>`;
+    };
+
+    const renderTree = (checked) => {
+      const set = new Set(checked || []);
+      const node = (n, root) => {
+        if (n.children) {
+          const ids = leaves(n.children);
+          const all = ids.every((id) => set.has(id));
+          return `<label class="${root ? "root" : ""}"><input type="checkbox" data-group="${n.id}" ${all ? "checked" : ""} />${n.name}</label>` +
+            n.children.map((c) => node(c, false)).join("");
+        }
+        return `<label><input type="checkbox" data-menu="${n.id}" ${set.has(n.id) ? "checked" : ""} />${n.name}</label>`;
+      };
+      $("r_tree").innerHTML = CRM.menuTree.map((n) => {
+        if (n.children) return `<div class="tree-g">${node(n, true)}</div>`;
+        return node(n, true);
+      }).join("");
+    };
+
+    const collectedMenus = () => [...$("r_tree").querySelectorAll("[data-menu]:checked")].map((c) => c.dataset.menu);
+
+    $("r_tree").addEventListener("change", (e) => {
+      const g = e.target.closest("[data-group]");
+      if (g) {
+        const group = CRM.menuTree.find((n) => n.id === g.dataset.group) || CRM.menuTree.flatMap((n) => n.children || []).find(() => false);
+        const box = CRM.menuTree.find((n) => n.id === g.dataset.group);
+        const ids = box && box.children ? leaves(box.children) : [];
+        ids.forEach((id) => {
+          const el = $("r_tree").querySelector(`[data-menu="${id}"]`);
+          if (el) el.checked = g.checked;
+        });
+        return;
+      }
+      renderTree(collectedMenus());
+    });
+
+    const openEdit = (id) => {
+      const r = list.find((x) => x.id === id);
+      if (!r) return;
+      editingId = id;
+      $("r_name").value = r.name;
+      $("r_desc").value = r.desc || "";
+      $("r_scope").value = r.scopeId || "self";
+      $("r_status").value = r.statusId || "on";
+      $("r_creator").value = r.creator || CRM.currentUser().name;
+      $("editLinks").innerHTML = `<a href="employees.html">对照员工账号</a>`;
+      renderTree(r.menus || []);
+      $("editMask").classList.add("show");
+    };
+
+    const fillPick = () => {
+      const used = new Set(CRM.roleUsers(userRoleId).map((s) => s.id));
+      const cand = CRM.loadStaff().filter((s) => CRM.empLive(s) && !used.has(s.id));
+      $("uPick").innerHTML = `<option value="">从在职员工中选择</option>` + cand.map((s) => `<option value="${s.id}">${s.name} · ${s.jobNo || s.no} · ${CRM.dictName("depts", s.deptId)}</option>`).join("");
+    };
+
+    const renderUsers = () => {
+      const rows = CRM.roleUsers(userRoleId);
+      const role = list.find((x) => x.id === userRoleId);
+      $("userTip").textContent = `「${(role && role.name) || ""}」已绑定 ${rows.length} 人，来源员工管理在职名单。`;
+      $("userBody").innerHTML = rows.map((s) => `<tr>
+        <td><div class="person"><span class="ava">${(s.name || "员").slice(0, 1)}</span>${s.name}</div></td>
+        <td>${s.jobNo || s.no}</td>
+        <td>${CRM.dictName("depts", s.deptId)}</td>
+        <td>${CRM.dictName("hrPosts", s.postId)}</td>
+        <td>${CRM.maskPhone(s.phone)}</td>
+        <td class="ops"><button data-un="${s.id}" type="button">移除</button>
+          <button type="button" onclick="location.href='employees.html?person=${encodeURIComponent(s.id)}'">档案</button></td>
+      </tr>`).join("") || `<tr><td colspan="6">暂无关联用户，请添加</td></tr>`;
+      fillPick();
+    };
+
+    const openUsers = (id) => {
+      userRoleId = id;
+      renderUsers();
+      $("userMask").classList.add("show");
+    };
+
+    $("btnQuery").addEventListener("click", () => {
+      query = { name: $("fName").value.trim(), status: $("fStatus").value, from: $("fFrom").value, to: $("fTo").value, creator: $("fCreator").value.trim() };
+      page = 1; render();
+    });
+    $("btnReset").addEventListener("click", () => {
+      $("fName").value = $("fStatus").value = $("fFrom").value = $("fTo").value = $("fCreator").value = "";
+      query = {}; page = 1; render();
+    });
+    $("pages").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-p]");
+      if (!b || b.disabled) return;
+      const n = Number(b.dataset.p);
+      if (n >= 1) { page = n; render(); }
+    });
+    $("tbody").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]");
+      if (!b) return;
+      if (b.dataset.act === "edit") openEdit(b.dataset.id);
+      if (b.dataset.act === "users") openUsers(b.dataset.id);
+    });
+    $("btnSave").addEventListener("click", () => {
+      const r = list.find((x) => x.id === editingId);
+      if (!r) return;
+      if (!$("r_name").value.trim()) { toast("请填写角色名称"); return; }
+      const menus = collectedMenus();
+      if (!menus.includes("workbench.html")) menus.unshift("workbench.html");
+      const next = list.map((x) => x.id === r.id ? {
+        ...x,
+        name: $("r_name").value.trim(),
+        desc: $("r_desc").value.trim(),
+        scopeId: $("r_scope").value || "self",
+        statusId: $("r_status").value || "on",
+        menus
+      } : x);
+      CRM.saveRoles(next);
+      list = CRM.loadRoles();
+      $("editMask").classList.remove("show");
+      render();
+      toast("已保存，关联账号登录后菜单即时生效");
+    });
+    $("btnAddUser").addEventListener("click", () => {
+      const id = $("uPick").value;
+      if (!id) { toast("请选择员工"); return; }
+      CRM.bindRoleUser(userRoleId, id);
+      renderUsers();
+      render();
+      toast("已绑定，员工管理角色列已更新");
+    });
+    $("userBody").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-un]");
+      if (!b) return;
+      CRM.unbindRoleUser(b.dataset.un);
+      renderUsers();
+      render();
+      toast("已移除关联");
+    });
+
+    const qs = new URLSearchParams(location.search);
+    if (qs.get("role")) query.id = qs.get("role");
+    render();
+  </script>
+</body>
+</html>

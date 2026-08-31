@@ -1,0 +1,300 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>经营报表 - CRM</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <script src="js/auth.js"></script>
+  <style>
+    .toolbar { padding: 16px; margin-bottom: 16px; }
+    .filter-grid { display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto; gap: 10px 8px; align-items: center; }
+    .filter-grid label { font-size: var(--fs-sm); color: var(--text); text-align: right; white-space: nowrap; }
+    .filter-grid select { height: 32px; border: 1px solid #d9d9d9; border-radius: var(--radius-sm); padding: 0 10px; font-size: var(--fs-sm); width: 100%; background: #fff; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-md { height: 32px; padding: 0 14px; font-size: var(--fs-sm); }
+    .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 16px; }
+    .kpi { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px 14px; border-bottom: 3px solid var(--primary); }
+    .kpi.orange { border-bottom-color: var(--orange); }
+    .kpi.green { border-bottom-color: var(--success); }
+    .kpi.cyan { border-bottom-color: #13c2c2; }
+    .kpi.red { border-bottom-color: var(--danger); }
+    .kpi-label { font-size: var(--fs-sm); color: var(--text-secondary); }
+    .kpi-val { font-size: 24px; font-weight: 700; line-height: 1.3; margin: 6px 0 4px; letter-spacing: -0.4px; }
+    .kpi-val .u { font-size: 13px; font-weight: 600; margin-left: 4px; color: var(--text-secondary); }
+    .kpi-val.ok { color: var(--success); }
+    .kpi-sub { font-size: var(--fs-xs); color: var(--text-secondary); }
+    .up { color: var(--success); }
+    .down { color: var(--danger); }
+    .list-card { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 10px 8px; text-align: left; border-top: 1px solid #f0f0f0; white-space: nowrap; }
+    th { background: #fafafa; color: var(--text-secondary); font-weight: 600; }
+    .profit { color: var(--success); font-weight: 600; }
+    .ops button { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12px; padding: 0; }
+    .pager-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: var(--fs-xs); color: var(--text-secondary); }
+    .pager-right { display: flex; align-items: center; gap: 6px; }
+    .pager-bar button { min-width: 24px; height: 24px; border: 1px solid #d9d9d9; background: #fff; border-radius: 4px; cursor: pointer; }
+    .pager-bar button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .pager-bar button:disabled { opacity: 0.45; cursor: default; }
+    .mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; align-items: center; justify-content: center; padding: 16px; }
+    .mask.show { display: flex; }
+    .modal { width: 920px; max-width: 100%; background: #fff; border-radius: var(--radius); max-height: calc(100vh - 24px); overflow: auto; }
+    .modal-head { height: 44px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; position: sticky; top: 0; font-weight: 600; z-index: 1; }
+    .modal-close { position: absolute; right: 12px; top: 0; height: 44px; border: 0; background: none; color: #fff; font-size: 22px; cursor: pointer; }
+    .modal-body { padding: 16px 20px 8px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 12px 20px 20px; }
+    .mini-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .mini { background: #fafafa; border-radius: 8px; padding: 12px 14px; }
+    .mini .lab { font-size: 12px; color: var(--text-secondary); }
+    .mini .num { font-size: 20px; font-weight: 700; margin: 4px 0; }
+    .mini .sub { font-size: 12px; }
+    .sec h5 { margin: 0 0 10px; font-size: var(--fs-md); font-weight: 600; border-left: 3px solid var(--primary); padding-left: 8px; }
+    .links { font-size: 12px; margin: 8px 0 0; }
+    .links a { color: var(--primary); text-decoration: none; margin-right: 16px; }
+    @media (max-width: 1100px) { .kpi-row { grid-template-columns: 1fr 1fr; } .filter-grid { grid-template-columns: auto 1fr auto 1fr; } .filter-actions { grid-column: 1 / -1; } }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">CRM</div>
+      <nav class="nav">
+        <a class="nav-item" href="workbench.html">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16l3-4 3 2 4-6"/></svg>销售中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="marketing-goals.html">营销目标</a>
+            <a class="nav-item" href="leads.html">线索管理</a>
+            <a class="nav-item" href="opportunities.html">商机管理</a>
+            <a class="nav-item" href="contracts.html">合同管理</a>
+            <a class="nav-item" href="customers.html">客户管理</a>
+            <a class="nav-item" href="sales-performance.html">销售业绩</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.5-3 2.8-5 5-5s4.5 2 5 5"/><path d="M16 8h5M18.5 5.5v5"/></svg>客户中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <button class="nav-item" data-page="pending" type="button">政务服务</button>
+            <button class="nav-item" data-page="pending" type="button">代账服务</button>
+            <a class="nav-item" href="addresses.html">地址管理</a>
+            <a class="nav-item" href="customer-items.html">客户物品</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>运营中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="reimbursements.html">财务报销</a>
+            <a class="nav-item active" href="reports.html">经营报表</a>
+            <a class="nav-item" href="personnel.html">人事管理</a>
+            <a class="nav-item" href="salary.html">薪资管理</a>
+            <a class="nav-item" href="employees.html">员工管理</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>系统管理</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="roles.html">角色权限</a>
+            <button class="nav-item" data-page="pending" type="button">字典管理</button>
+            <button class="nav-item" data-page="pending" type="button">菜单管理</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="header">
+        <div class="dropdown" id="mailDrop">
+          <button class="icon-btn" type="button" data-toggle="mailDrop" aria-label="消息"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg></button>
+          <div class="dropdown-panel"><div class="empty">暂无新消息</div></div>
+        </div>
+        <button class="icon-btn soon" type="button" aria-label="帮助"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 17v-1M12 8a2.2 2.2 0 0 1 1 4c-.6.5-1 1-1 2"/></svg></button>
+        <div class="dropdown" id="userDrop">
+          <button class="user-chip" type="button" data-toggle="userDrop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 19c1-4 3.5-6 7-6s6 2 7 6"/></svg>用户</button>
+          <div class="dropdown-panel"><button type="button" class="soon">个人中心</button><button type="button" data-logout>退出登录</button></div>
+        </div>
+      </header>
+      <main class="content">
+        <section class="card toolbar">
+          <div class="filter-grid">
+            <label title="来源：营销目标周期字典。去处：月份行范围。">报表周期</label><select id="fPeriod"></select>
+            <label>年份</label><select id="fYear"></select>
+            <label title="来源：部门字典。去处：按业务员部门过滤合同/客户/报销。">部门</label><select id="fDept"></select>
+            <label title="来源：报表产品线（由合同类型映射）。">产品类型</label><select id="fLine"></select>
+            <div class="filter-actions">
+              <button class="btn btn-ghost btn-md soon" type="button">导出</button>
+              <button class="btn btn-primary btn-md" id="btnQuery" type="button">查询</button>
+              <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置</button>
+            </div>
+          </div>
+        </section>
+        <div class="kpi-row" id="kpis"></div>
+        <section class="card list-card">
+          <table>
+            <thead>
+              <tr>
+                <th>月份</th><th>营收(万)</th><th>成本(万)</th><th>利润(万)</th><th>利润率</th>
+                <th>新增客户</th><th>合同签约额(万)</th><th>续费金额(万)</th><th>环比增长</th><th>同比增长</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="pager-bar">
+            <span id="pageInfo">共 0 条</span>
+            <div class="pager-right" id="pages"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="mask" id="viewMask">
+    <div class="modal">
+      <div class="modal-head"><span id="viewTitle">经营报表详情</span><button class="modal-close" data-close="viewMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="mini-kpis" id="miniKpis"></div>
+        <div class="sec">
+          <h5>产品类型明细</h5>
+          <table>
+            <thead>
+              <tr>
+                <th>产品类型</th><th>营收(万)</th><th>成本(万)</th><th>利润(万)</th><th>利润率</th>
+                <th>新增客户</th><th>合同签约额(万)</th><th>续费金额(万)</th>
+              </tr>
+            </thead>
+            <tbody id="lineBody"></tbody>
+          </table>
+          <div class="links" id="viewLinks"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="viewMask" type="button">关闭</button>
+        <button class="btn btn-primary btn-md soon" type="button">导出报表</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/crm-store.js"></script>
+  <script>
+    const toast = (m) => { const el = document.createElement("div"); el.className = "toast"; el.textContent = m; document.getElementById("toasts").appendChild(el); setTimeout(() => el.remove(), 1800); };
+    document.querySelectorAll(".nav-group-btn").forEach((b) => b.addEventListener("click", () => b.parentElement.classList.toggle("open")));
+    document.querySelectorAll("[data-page=pending],.soon").forEach((el) => el.addEventListener("click", () => toast("功能即将开放")));
+    document.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", (e) => { e.stopPropagation(); document.querySelectorAll(".dropdown").forEach((d) => d.classList.toggle("open", d.id === btn.dataset.toggle && !d.classList.contains("open"))); });
+    });
+    document.addEventListener("click", () => document.querySelectorAll(".dropdown").forEach((d) => d.classList.remove("open")));
+    document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => document.getElementById(b.dataset.close).classList.remove("show")));
+
+    const $ = (id) => document.getElementById(id);
+    const fillSel = (el, list, all) => { el.innerHTML = `<option value="">${all}</option>` + list.map((x) => `<option value="${x.id}">${x.name}</option>`).join(""); };
+    fillSel($("fPeriod"), CRM.dicts.periods, "请选择");
+    $("fYear").innerHTML = `<option value="">请选择</option>` + CRM.dicts.years.map((y) => `<option value="${y}">${y}</option>`).join("");
+    fillSel($("fDept"), CRM.dicts.depts, "请选择");
+    fillSel($("fLine"), CRM.dicts.reportLines, "请选择");
+    $("fPeriod").value = "year";
+    $("fYear").value = "2026";
+
+    const arrow = (n) => {
+      const pct = (Math.abs(n) * 100).toFixed(1) + "%";
+      if (n > 0) return `<span class="up">↑ ${pct}</span>`;
+      if (n < 0) return `<span class="down">↓ ${pct}</span>`;
+      return "—";
+    };
+    const n1 = (v) => Math.round(Number(v || 0) * 10) / 10;
+    const pct = (v) => ((Number(v || 0) * 100).toFixed(1)) + "%";
+
+    let data = { rows: [], kpis: {} };
+    let page = 1;
+    const pageSize = 10;
+    let query = { period: "year", year: "2026", deptId: "", lineId: "" };
+
+    const loadData = () => {
+      data = CRM.businessReport({ period: query.period || "year", year: query.year || 2026, deptId: query.deptId, lineId: query.lineId });
+    };
+
+    const renderKpi = () => {
+      const k = data.kpis;
+      $("kpis").innerHTML = `
+        <div class="kpi"><div class="kpi-label">营收总额</div><div class="kpi-val">${n1(k.revenue)}<span class="u">万</span></div><div class="kpi-sub">环比 ${arrow(k.mom)}</div></div>
+        <div class="kpi orange"><div class="kpi-label">成本总额</div><div class="kpi-val">${n1(k.cost)}<span class="u">万</span></div><div class="kpi-sub">环比 ${arrow(k.costMom)}</div></div>
+        <div class="kpi green"><div class="kpi-label">利润总额</div><div class="kpi-val ok">${n1(k.profit)}<span class="u">万</span></div><div class="kpi-sub">环比 ${arrow(k.profitMom)}</div></div>
+        <div class="kpi cyan"><div class="kpi-label">利润率</div><div class="kpi-val">${(k.rate * 100).toFixed(1)}<span class="u">%</span></div><div class="kpi-sub">同比 ${arrow(k.rateYoy)}</div></div>
+        <div class="kpi red"><div class="kpi-label">客户数</div><div class="kpi-val">${k.custCount}<span class="u">家</span></div><div class="kpi-sub">本月新增 ${k.monthCust}家</div></div>`;
+    };
+
+    const render = () => {
+      renderKpi();
+      const rows = data.rows || [];
+      const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+      if (page > pages) page = pages;
+      $("pageInfo").textContent = `共 ${rows.length} 条`;
+      $("tbody").innerHTML = rows.slice((page - 1) * pageSize, page * pageSize).map((r, i) => `<tr>
+        <td>${r.label}</td>
+        <td>${n1(r.revenue)}</td>
+        <td>${n1(r.cost)}</td>
+        <td class="profit">${n1(r.profit)}</td>
+        <td>${pct(r.rate)}</td>
+        <td>${r.custNew}</td>
+        <td>${n1(r.signWan)}</td>
+        <td>${n1(r.renewWan)}</td>
+        <td>${arrow(r.mom)}</td>
+        <td>${arrow(r.yoy)}</td>
+        <td class="ops"><button data-i="${(page - 1) * pageSize + i}" type="button">详情</button></td>
+      </tr>`).join("") || `<tr><td colspan="11">暂无报表数据</td></tr>`;
+      $("pages").innerHTML = `<button type="button" data-p="${page - 1}" ${page <= 1 ? "disabled" : ""}>‹</button>` +
+        Array.from({ length: pages }, (_, i) => `<button class="${i + 1 === page ? "on" : ""}" data-p="${i + 1}" type="button">${i + 1}</button>`).join("") +
+        `<button type="button" data-p="${page + 1}" ${page >= pages ? "disabled" : ""}>›</button>`;
+    };
+
+    const openView = (idx) => {
+      const r = data.rows[idx];
+      if (!r) return;
+      $("viewTitle").textContent = "经营报表详情 - " + r.label;
+      $("miniKpis").innerHTML = `
+        <div class="mini"><div class="lab">营收</div><div class="num">${n1(r.revenue)}万</div><div class="sub">${arrow(r.mom)}</div></div>
+        <div class="mini"><div class="lab">成本</div><div class="num">${n1(r.cost)}万</div><div class="sub">${arrow(r.costMom)}</div></div>
+        <div class="mini"><div class="lab">利润</div><div class="num">${n1(r.profit)}万</div><div class="sub">${arrow(r.profitMom)}</div></div>
+        <div class="mini"><div class="lab">利润率</div><div class="num">${pct(r.rate)}</div><div class="sub">同比 ${arrow(r.rateYoy)}</div></div>`;
+      $("lineBody").innerHTML = (r.lines || []).map((l) => `<tr>
+        <td>${l.name}</td><td>${n1(l.revenue)}</td><td>${n1(l.cost)}</td><td class="profit">${n1(l.profit)}</td>
+        <td>${pct(l.rate)}</td><td>${l.custNew}</td><td>${n1(l.signWan)}</td><td>${n1(l.renewWan)}</td>
+      </tr>`).join("");
+      const from = r.ym + "-01";
+      const to = r.ym + "-31";
+      $("viewLinks").innerHTML = `
+        <a href="contracts.html?signFrom=${from}&signTo=${to}">查看本月合同</a>
+        <a href="customers.html?status=deal&createdFrom=${from}&createdTo=${to}">查看本月成交客户</a>
+        <a href="reimbursements.html?status=pass&month=${r.ym}">查看本月已通过报销</a>
+        <a href="sales-performance.html">对照销售业绩</a>`;
+      $("viewMask").classList.add("show");
+    };
+
+    $("btnQuery").addEventListener("click", () => {
+      query = { period: $("fPeriod").value, year: $("fYear").value, deptId: $("fDept").value, lineId: $("fLine").value };
+      page = 1; loadData(); render();
+    });
+    $("btnReset").addEventListener("click", () => {
+      $("fPeriod").value = "year"; $("fYear").value = "2026"; $("fDept").value = $("fLine").value = "";
+      query = { period: "year", year: "2026", deptId: "", lineId: "" };
+      page = 1; loadData(); render();
+    });
+    $("pages").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-p]");
+      if (!b || b.disabled) return;
+      const n = Number(b.dataset.p);
+      if (n >= 1) { page = n; render(); }
+    });
+    $("tbody").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-i]");
+      if (b) openView(Number(b.dataset.i));
+    });
+
+    loadData();
+    render();
+  </script>
+</body>
+</html>

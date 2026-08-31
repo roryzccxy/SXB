@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -26,7 +26,7 @@
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 10px 8px; text-align: left; border-top: 1px solid #f0f0f0; white-space: nowrap; }
     th { background: #fafafa; color: var(--text-secondary); font-weight: 600; }
-    .link { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12px; padding: 0 4px; }
+    .link { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12px; padding: 0 4px; text-decoration: none; }
     .split { color: #d9d9d9; margin: 0 2px; }
     .tag { display: inline-block; margin: 0 4px 0 0; padding: 0 6px; line-height: 20px; background: #e6f4ff; color: var(--primary); border-radius: 4px; font-size: 12px; }
     .st { font-weight: 600; }
@@ -103,7 +103,7 @@
             <a class="nav-item" href="opportunities.html">商机管理</a>
             <a class="nav-item active" href="contracts.html">合同管理</a>
             <a class="nav-item" href="customers.html">客户管理</a>
-            <button class="nav-item" data-page="pending" type="button">销售业绩</button>
+            <a class="nav-item" href="sales-performance.html">销售业绩</a>
           </div>
         </div>
         <div class="nav-group open">
@@ -111,24 +111,24 @@
           <div class="nav-sub">
             <button class="nav-item" data-page="pending" type="button">政务服务</button>
             <button class="nav-item" data-page="pending" type="button">代账服务</button>
-            <button class="nav-item" data-page="pending" type="button">地址管理</button>
-            <button class="nav-item" data-page="pending" type="button">客户物品</button>
+            <a class="nav-item" href="addresses.html">地址管理</a>
+            <a class="nav-item" href="customer-items.html">客户物品</a>
           </div>
         </div>
         <div class="nav-group open">
           <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>运营中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
           <div class="nav-sub">
-            <button class="nav-item" data-page="pending" type="button">财务报销</button>
-            <button class="nav-item" data-page="pending" type="button">经营报表</button>
-            <button class="nav-item" data-page="pending" type="button">人事管理</button>
-            <button class="nav-item" data-page="pending" type="button">薪资管理</button>
-            <button class="nav-item" data-page="pending" type="button">员工管理</button>
+            <a class="nav-item" href="reimbursements.html">财务报销</a>
+            <a class="nav-item" href="reports.html">经营报表</a>
+            <a class="nav-item" href="personnel.html">人事管理</a>
+            <a class="nav-item" href="salary.html">薪资管理</a>
+            <a class="nav-item" href="employees.html">员工管理</a>
           </div>
         </div>
         <div class="nav-group open">
           <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>系统管理</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
           <div class="nav-sub">
-            <button class="nav-item" data-page="pending" type="button">角色权限</button>
+            <a class="nav-item" href="roles.html">角色权限</a>
             <button class="nav-item" data-page="pending" type="button">字典管理</button>
             <button class="nav-item" data-page="pending" type="button">菜单管理</button>
           </div>
@@ -316,7 +316,7 @@
           <div class="field"><label>生效日期</label><input id="r_start" type="date" /></div>
           <div class="field"><label>到期日期</label><input id="r_end" type="date" /></div>
           <div class="field"><label>业务员</label><input id="r_man" list="peopleList" /></div>
-          <div class="field"><label>关联地址</label><input id="r_addr" /></div>
+          <div class="field"><label>关联地址</label><input id="r_addr" list="addrList" placeholder="匹配地址库" /><datalist id="addrList"></datalist></div>
         </div>
         <div class="field" style="margin-top:14px"><label>续费备注</label><textarea class="grow" id="r_note" placeholder="请输入续费说明"></textarea></div>
       </div>
@@ -351,7 +351,9 @@
     fillSel(fPayStatus, CRM.dicts.payStatuses, "请选择");
     ["b_pay", "d_pay"].forEach((id) => fillSel($(id), CRM.dicts.payForms, "请选择"));
     ["b_inv", "a_inv", "d_inv", "l_inv"].forEach((id) => fillSel($(id), CRM.dicts.invoiceTypes, "请选择"));
-    $("pkgList").innerHTML = CRM.dicts.addrPackages.map((x) => `<option value="${x.name}"></option>`).join("");
+    const liveAddrs = () => CRM.loadAddresses().filter((a) => a.statusId !== "off" && a.statusId !== "full");
+    $("pkgList").innerHTML = liveAddrs().map((a) => `<option value="${a.name}"></option>`).join("") + CRM.dicts.addrPackages.map((x) => `<option value="${x.name}"></option>`).join("");
+    $("addrList").innerHTML = liveAddrs().map((a) => `<option value="${a.name}">${a.no} ${a.detail || ""}</option>`).join("");
     $("peopleList").innerHTML = CRM.dicts.people.map((x) => `<option value="${x.name}"></option>`).join("");
     $("prodList").innerHTML = CRM.dicts.contractTypes.map((x) => `<option value="${x.name}"></option>`).join("");
     $("b_pay").value = "year"; $("d_pay").value = "year";
@@ -398,7 +400,7 @@
       $("panelBook").hidden = t !== "book";
       $("panelAddon").hidden = t !== "addon";
       $("panelAddr").hidden = t !== "addr";
-      $("panelLegal").hidden = t !== "legal";
+      $("panelLegal").hidden = t !== "legal" && t !== "tax";
     };
 
     const fillCompanyList = () => {
@@ -487,7 +489,7 @@
       const mid = c.statusId === "expired"
         ? `<button class="link" data-act="renew" data-id="${c.id}" type="button">续费</button>`
         : `<button class="link" data-act="edit" data-id="${c.id}" type="button">编辑</button>`;
-      return `${view}<span class="split">|</span>${mid}<span class="split">|</span><button class="link" data-act="download" data-id="${c.id}" type="button">下载</button><span class="split">|</span><button class="link" data-act="del" data-id="${c.id}" type="button">删除</button>`;
+      return `${view}<span class="split">|</span>${mid}<span class="split">|</span><a class="link" href="customer-items.html?customer=${encodeURIComponent(c.customerName || "")}">物品</a><span class="split">|</span><button class="link" data-act="download" data-id="${c.id}" type="button">下载</button><span class="split">|</span><button class="link" data-act="del" data-id="${c.id}" type="button">删除</button>`;
     };
 
     const render = () => {
@@ -642,7 +644,7 @@
           taxpayer: checkedVals("ns"), filing: checkedVals("fil"), bookkeep: checkedVals("bk"),
           invoiceSvc: (document.querySelector("input[name=invs]:checked") || {}).value,
           otherSvc: $("b_other").value, prepaid: $("a_pre").classList.contains("on"),
-          workdays: Number($("a_days").value) || 1, packageName: $("d_pkg").value,
+          workdays: Number($("a_days").value) || 1, packageName: $("d_pkg").value, addressName: $("d_pkg").value,
           legalContent: $("l_svc").value,
           lines: [...document.querySelectorAll("#a_lines .line-row")].map((row) => ({
             product: row.querySelector(".a-pid").value, amount: Number(row.querySelector(".a-amt").value || 0), remark: row.querySelector(".a-rmk").value
@@ -729,11 +731,11 @@
         CRM.saveContracts(list);
         toast("合同已更新");
       } else {
-        const row = { id: "ct-new-" + Date.now(), countedSign: false, countedRenew: false, ...data };
+        const row = { id: "ct-new-" + Date.now(), countedSign: false, countedRenew: false, countedItems: false, ...data };
         CRM.applyContractBusiness(row, { isNew: true, isRenew: false });
         list.unshift(row);
         CRM.saveContracts(list);
-        toast("合同已创建：已回写商机成交，签约金额（万）计入营销目标");
+        toast("合同已创建：已回写商机，并入库客户物品");
       }
       $("ctMask").classList.remove("show");
       render();
@@ -770,13 +772,14 @@
         extra: ($("r_addr").value ? "关联地址：" + $("r_addr").value + "。" : "") + ($("r_note").value || ""),
         renewFrom: old.no,
         countedSign: true,
-        countedRenew: false
+        countedRenew: false,
+        countedItems: false
       };
       CRM.applyContractBusiness(row, { isNew: false, isRenew: true });
       list.unshift(row);
       CRM.saveContracts(list);
       $("reMask").classList.remove("show");
-      toast("已续费：新合同已生成，续费金额（万）计入营销目标");
+      toast("已续费：新合同已生成，合同原件已入库客户物品");
       render();
     });
 
@@ -848,6 +851,22 @@
     });
 
     const qs = new URLSearchParams(location.search);
+    if (qs.get("signFrom")) {
+      fSignFrom.value = qs.get("signFrom");
+      query.signFrom = qs.get("signFrom");
+    }
+    if (qs.get("signTo")) {
+      fSignTo.value = qs.get("signTo");
+      query.signTo = qs.get("signTo");
+    }
+    if (qs.get("no")) {
+      fNo.value = qs.get("no");
+      query.no = qs.get("no");
+    }
+    if (qs.get("person")) {
+      fPerson.value = qs.get("person");
+      query.person = qs.get("person");
+    }
     if (qs.get("opp")) {
       const opp = CRM.loadOpps().find((o) => o.id === qs.get("opp"));
       if (opp) {

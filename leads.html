@@ -139,6 +139,7 @@
       cursor: pointer;
       font-size: 13px;
       padding: 0;
+      text-decoration: none;
     }
     .pager-bar {
       display: flex;
@@ -337,7 +338,7 @@
             <a class="nav-item" href="opportunities.html">商机管理</a>
             <a class="nav-item" href="contracts.html">合同管理</a>
             <a class="nav-item" href="customers.html">客户管理</a>
-            <button class="nav-item" data-page="pending" type="button">销售业绩</button>
+            <a class="nav-item" href="sales-performance.html">销售业绩</a>
           </div>
         </div>
         <div class="nav-group open">
@@ -351,8 +352,8 @@
           <div class="nav-sub">
             <button class="nav-item" data-page="pending" type="button">政务服务</button>
             <button class="nav-item" data-page="pending" type="button">代账服务</button>
-            <button class="nav-item" data-page="pending" type="button">地址管理</button>
-            <button class="nav-item" data-page="pending" type="button">客户物品</button>
+            <a class="nav-item" href="addresses.html">地址管理</a>
+            <a class="nav-item" href="customer-items.html">客户物品</a>
           </div>
         </div>
         <div class="nav-group open">
@@ -364,11 +365,11 @@
             <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
           <div class="nav-sub">
-            <button class="nav-item" data-page="pending" type="button">财务报销</button>
-            <button class="nav-item" data-page="pending" type="button">经营报表</button>
-            <button class="nav-item" data-page="pending" type="button">人事管理</button>
-            <button class="nav-item" data-page="pending" type="button">薪资管理</button>
-            <button class="nav-item" data-page="pending" type="button">员工管理</button>
+            <a class="nav-item" href="reimbursements.html">财务报销</a>
+            <a class="nav-item" href="reports.html">经营报表</a>
+            <a class="nav-item" href="personnel.html">人事管理</a>
+            <a class="nav-item" href="salary.html">薪资管理</a>
+            <a class="nav-item" href="employees.html">员工管理</a>
           </div>
         </div>
         <div class="nav-group open">
@@ -380,7 +381,7 @@
             <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
           <div class="nav-sub">
-            <button class="nav-item" data-page="pending" type="button">角色权限</button>
+            <a class="nav-item" href="roles.html">角色权限</a>
             <button class="nav-item" data-page="pending" type="button">字典管理</button>
             <button class="nav-item" data-page="pending" type="button">菜单管理</button>
           </div>
@@ -674,6 +675,9 @@
             }
           }
           ops += `<button class="link" data-act="detail" data-id="${l.id}" type="button">详情</button>`;
+          if (tab === "opportunity") {
+            ops += `<a class="link" href="customer-items.html?customer=${encodeURIComponent(l.companyName || l.name || "")}">物品</a>`;
+          }
         }
         return `<tr>
           <td>${l.name || "—"}</td><td>${l.phone || "—"}</td>
@@ -966,6 +970,8 @@
       const row = leads.find((l) => l.followResult === "following") || leads[0];
       if (row) openFollow(row.id);
     }
+    const ownerQs = new URLSearchParams(location.search).get("owner");
+    if (ownerQs) fOwner.value = ownerQs;
     render();
   </script>
 </body>
