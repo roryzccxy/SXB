@@ -238,6 +238,31 @@ const CRM = (() => {
     roleStatuses: [
       { id: "on", name: "正常" },
       { id: "off", name: "停用" }
+    ],
+    govTypes: [
+      { id: "addr_fix", name: "解地址异常" },
+      { id: "register", name: "工商注册" },
+      { id: "change", name: "变更登记" },
+      { id: "cancel", name: "注销登记" },
+      { id: "annual", name: "年报公示" },
+      { id: "permit", name: "许可办理" }
+    ],
+    govHands: [
+      { id: "none", name: "未交接" },
+      { id: "part", name: "部分交接" },
+      { id: "all", name: "全部交接" }
+    ],
+    govTicketStatuses: [
+      { id: "doing", name: "办理中" },
+      { id: "done", name: "已完成" }
+    ],
+    taxpayers: [
+      { id: "small", name: "小规模纳税人" },
+      { id: "general", name: "一般纳税人" }
+    ],
+    svcTeams: [
+      { id: "adv1", name: "顾问一组" },
+      { id: "adv2", name: "顾问二组" }
     ]
   };
 
@@ -1627,6 +1652,7 @@ const CRM = (() => {
       depositContractItems(ct);
       ct.countedItems = true;
     }
+    if (typeof upsertBookFromContract === "function") upsertBookFromContract(ct);
     return ct;
   };
 
@@ -1790,6 +1816,17 @@ const CRM = (() => {
     });
     saveContracts(cts);
     if (prev && prev.name) renameCustomerItems(prev.name, cu.name);
+    const books = typeof loadBook === "function" ? loadBook() : [];
+    let bookChanged = false;
+    books.forEach((b) => {
+      const hit = (cu.id && b.customerId === cu.id) || (prev && prev.name && b.customerName === prev.name);
+      if (!hit) return;
+      b.customerName = cu.name;
+      b.customerId = cu.id;
+      if (cu.ownerId) b.ownerId = cu.ownerId;
+      bookChanged = true;
+    });
+    if (bookChanged) saveBook(books);
   };
 
   const customerOptions = (source) => {
@@ -1813,6 +1850,249 @@ const CRM = (() => {
       loadContracts().forEach((c) => push(c.customerName, c.contact, c.phone, c.oppId, c.leadId));
     }
     return [...map.values()];
+  };
+
+  const GOV_KEY = "crm-gov-v1";
+  const regionIdOfText = (text) => {
+    const t = String(text || "");
+    if (t.includes("上海")) return "sh";
+    if (t.includes("苏州") || t.includes("无锡") || t.includes("常熟")) return "jssz";
+    if (t.includes("常州")) return "jscz";
+    if (t.includes("杭州") || t.includes("宁波") || t.includes("绍兴") || t.includes("浙江")) return "zjh";
+    return "zj";
+  };
+  const govSeed = () => {
+    const custs = loadCustomers().filter((c) => c.name && c.name !== "—").slice(0, 80);
+    const staff = (typeof loadStaff === "function" ? loadStaff() : []).filter((s) => s.statusId !== "left");
+    const sales = staff.filter((s) => ["s1", "s2", "w1", "c1", "cs"].includes(s.deptId));
+    const clerks = staff.filter((s) => s.deptId === "adm" || s.deptId === "fin" || s.postId === "admin" || s.postId === "acct");
+    const salePool = sales.length ? sales : staff;
+    const clerkPool = clerks.length ? clerks : staff;
+    const types = dicts.govTypes;
+    return custs.map((c, i) => {
+      const owner = person(c.ownerId) || salePool[i % Math.max(salePool.length, 1)] || {};
+      const clerk = clerkPool[i % Math.max(clerkPool.length, 1)] || {};
+      const clerk2 = clerkPool[(i + 3) % Math.max(clerkPool.length, 1)] || clerk;
+      const doing = i % 5 !== 0;
+      const dispatched = i % 7 !== 0;
+      const day = String((i % 20) + 8).padStart(2, "0");
+      const created = "2026-08-" + String((i % 18) + 1).padStart(2, "0");
+      const dispatchAt = dispatched ? "2026-08-" + day + " 16:03" : "";
+      const recvAt = i % 4 === 0 ? "" : "2026-08-" + String(Math.min(28, Number(day) + 1)).padStart(2, "0") + " 10:01";
+      const doneAt = doing ? "" : "2026-08-" + String(Math.min(31, Number(day) + 3)).padStart(2, "0");
+      const days = dispatchAt ? Math.max(1, Math.min(20, 31 - Number(day))) : 0;
+      return {
+        id: "gov-" + (i + 1),
+        no: "GOV" + String(i + 1).padStart(3, "0"),
+        customerName: c.name,
+        customerId: c.id,
+        typeId: types[i % types.length].id,
+        regionId: regionIdOfText(c.region),
+        ownerId: c.ownerId || owner.id || "",
+        deptId: owner.deptId || (person(c.ownerId) || {}).deptId || "",
+        onlineId: dispatched ? clerk.id : "",
+        offlineId: dispatched && i % 2 ? clerk2.id : "",
+        handId: ["none", "part", "all"][i % 3],
+        recvAt,
+        days: doing ? days : Math.max(1, days - 2),
+        dispatchAt,
+        doneAt,
+        statusId: doing ? "doing" : "done",
+        createdAt: created + " 09:00",
+        remark: "",
+        logs: [{ at: created + " 09:00", title: "创建工单", text: "客户 " + c.name }]
+      };
+    });
+  };
+  const loadGov = () => {
+    let list = [];
+    try {
+      const raw = localStorage.getItem(GOV_KEY);
+      if (raw) list = JSON.parse(raw);
+      if (!Array.isArray(list)) list = [];
+    } catch (e) {
+      list = [];
+    }
+    if (!list.length) {
+      list = govSeed();
+      localStorage.setItem(GOV_KEY, JSON.stringify(list));
+    }
+    return list;
+  };
+  const saveGov = (list) => localStorage.setItem(GOV_KEY, JSON.stringify(list));
+  const nextGovNo = (list) => {
+    let max = 0;
+    (list || loadGov()).forEach((g) => {
+      const n = Number(String(g.no || "").replace(/\D/g, ""));
+      if (n) max = Math.max(max, n);
+    });
+    return "GOV" + String(max + 1).padStart(3, "0");
+  };
+
+  const BOOK_KEY = "crm-book-v1";
+  const ymOf = (s) => String(s || "").slice(0, 7);
+  const monthsBetweenYM = (fromYM, toYM) => {
+    const a = String(fromYM || "").split("-").map(Number);
+    const b = String(toYM || "").split("-").map(Number);
+    if (!a[0] || !b[0]) return 0;
+    return (b[0] - a[0]) * 12 + ((b[1] || 0) - (a[1] || 0));
+  };
+  const bookMonthlyFee = (amountYuan, payForm) => {
+    const a = Number(amountYuan || 0);
+    if (payForm === "month") return Math.round(a);
+    if (payForm === "quarter") return Math.round(a / 3);
+    return Math.round(a / 12);
+  };
+  const bookChargeState = (endYM, asofYM) => {
+    const end = ymOf(endYM);
+    const asof = ymOf(asofYM || HR_ASOF);
+    if (!end) return { kind: "ok", text: "--", remain: 0 };
+    const remain = monthsBetweenYM(asof, end);
+    if (remain < 0) return { kind: "danger", text: "逾期" + Math.abs(remain) + "个月", remain };
+    if (remain === 0) return { kind: "warn", text: "当月到期", remain };
+    if (remain <= 1) return { kind: "warn", text: "余" + remain + "个月", remain };
+    return { kind: "ok", text: end, remain };
+  };
+  const taxpayerOfContract = (ct, i) => {
+    const arr = (ct && ct.detail && ct.detail.taxpayer) || [];
+    if (arr.indexOf("general") >= 0) return "general";
+    if (arr.indexOf("small") >= 0) return "small";
+    return i % 3 === 0 ? "general" : "small";
+  };
+  const isBookContract = (ct) => ct && ct.statusId !== "void" && ct.statusId !== "draft" && (ct.typeId === "book" || (ct.productIds || [])[0] === "book");
+  const bookStaffPools = () => {
+    const staff = (typeof loadStaff === "function" ? loadStaff() : []).filter((s) => s.statusId !== "left");
+    const sales = staff.filter((s) => ["s1", "s2", "w1", "c1", "cs"].includes(s.deptId));
+    const fin = staff.filter((s) => s.deptId === "fin" || s.postId === "acct" || s.postId === "acct_mgr");
+    return { staff, sales: sales.length ? sales : staff, fin: fin.length ? fin : staff };
+  };
+  const rowFromContract = (ct, i) => {
+    const { staff, fin } = bookStaffPools();
+    const cu = loadCustomers().find((c) => c.name === ct.customerName) || {};
+    const ownerId = ct.signerId || cu.ownerId || "";
+    const owner = person(ownerId) || staff.find((s) => s.id === ownerId) || {};
+    const dispatched = i % 6 !== 0;
+    const tax = fin[i % Math.max(fin.length, 1)] || {};
+    const acct = fin[(i + 1) % Math.max(fin.length, 1)] || tax;
+    const inv = fin[(i + 2) % Math.max(fin.length, 1)] || tax;
+    const start = (ct.startDate || HR_ASOF).slice(0, 10);
+    const end = (ct.endDate || endByDuration(start, 1, 0)).slice(0, 10);
+    return {
+      id: "bk-" + (ct.id || i),
+      no: "BK" + String(i + 1).padStart(3, "0"),
+      customerName: ct.customerName,
+      customerId: cu.id || "",
+      contractId: ct.id,
+      contractNo: ct.no,
+      ownerId,
+      bizDeptId: owner.deptId || "",
+      svcDeptId: dispatched ? (i % 2 ? "adv2" : "adv1") : "",
+      taxAdvId: dispatched ? tax.id : "",
+      accountantId: dispatched ? acct.id : "",
+      invoicerId: dispatched ? inv.id : "",
+      amountYuan: Number(ct.amountYuan || 0),
+      payForm: ct.payForm || "year",
+      startMonth: ymOf(start),
+      chargeEnd: ymOf(end),
+      taxpayerId: taxpayerOfContract(ct, i),
+      serviceFrom: start,
+      serviceTo: end,
+      dispatchAt: dispatched ? start + " 10:00" : "",
+      remark: "",
+      logs: [{ at: start + " 09:00", title: "纳入代账", text: "合同 " + (ct.no || "") }]
+    };
+  };
+  const syncBookRowFromContract = (row, ct) => {
+    if (!row || !ct) return;
+    row.amountYuan = Number(ct.amountYuan || 0);
+    row.payForm = ct.payForm || row.payForm || "year";
+    row.startMonth = ymOf(ct.startDate) || row.startMonth;
+    row.chargeEnd = ymOf(ct.endDate) || row.chargeEnd;
+    row.serviceFrom = String(ct.startDate || "").slice(0, 10) || row.serviceFrom;
+    row.serviceTo = String(ct.endDate || "").slice(0, 10) || row.serviceTo;
+    row.contractId = ct.id;
+    row.contractNo = ct.no;
+    if (ct.signerId) row.ownerId = ct.signerId;
+    const p = person(ct.signerId);
+    if (p) row.bizDeptId = p.deptId;
+    if (ct.detail && ct.detail.taxpayer && ct.detail.taxpayer.length) {
+      row.taxpayerId = ct.detail.taxpayer.indexOf("general") >= 0 ? "general" : "small";
+    }
+    if (!row.customerId) {
+      const cu = loadCustomers().find((c) => c.name === ct.customerName);
+      if (cu) row.customerId = cu.id;
+    }
+    row.customerName = ct.customerName || row.customerName;
+  };
+  const latestBookContracts = () => {
+    const map = new Map();
+    loadContracts().filter(isBookContract).forEach((ct) => {
+      const prev = map.get(ct.customerName);
+      if (!prev || String(ct.endDate || "") > String(prev.endDate || "") || String(ct.signDate || "") > String(prev.signDate || "")) {
+        map.set(ct.customerName, ct);
+      }
+    });
+    return [...map.values()];
+  };
+  const loadBook = () => {
+    let list = [];
+    try {
+      const raw = localStorage.getItem(BOOK_KEY);
+      if (raw) list = JSON.parse(raw);
+      if (!Array.isArray(list)) list = [];
+    } catch (e) {
+      list = [];
+    }
+    const latest = latestBookContracts();
+    latest.forEach((ct, i) => {
+      const hit = list.find((b) => b.contractId === ct.id || b.customerName === ct.customerName);
+      if (hit) syncBookRowFromContract(hit, ct);
+      else list.push(rowFromContract(ct, list.length + i));
+    });
+    localStorage.setItem(BOOK_KEY, JSON.stringify(list));
+    return list;
+  };
+  const saveBook = (list) => localStorage.setItem(BOOK_KEY, JSON.stringify(list));
+  const nextBookNo = (list) => {
+    let max = 0;
+    (list || loadBook()).forEach((b) => {
+      const n = Number(String(b.no || "").replace(/\D/g, ""));
+      if (n) max = Math.max(max, n);
+    });
+    return "BK" + String(max + 1).padStart(3, "0");
+  };
+  const upsertBookFromContract = (ct) => {
+    if (!ct || ct.statusId === "void" || ct.statusId === "draft") return;
+    if (ct.typeId !== "book" && (ct.productIds || [])[0] !== "book") return;
+    const list = loadBook();
+    const hit = list.find((b) => b.contractId === ct.id || b.customerName === ct.customerName);
+    if (!hit) list.unshift(rowFromContract(ct, list.length));
+    else syncBookRowFromContract(hit, ct);
+    saveBook(list);
+  };
+  const writeBookToContract = (row) => {
+    if (!row) return null;
+    const cts = loadContracts();
+    const ct = cts.find((c) => c.id === row.contractId) || cts.filter(isBookContract).find((c) => c.customerName === row.customerName);
+    if (!ct) return null;
+    ct.amountYuan = Number(row.amountYuan || 0);
+    ct.payForm = row.payForm || ct.payForm;
+    if (row.serviceFrom) ct.startDate = row.serviceFrom;
+    if (row.serviceTo) {
+      ct.endDate = row.serviceTo;
+    } else if (row.chargeEnd) {
+      const [y, m] = String(row.chargeEnd).split("-").map(Number);
+      const last = new Date(y, m, 0);
+      ct.endDate = last.getFullYear() + "-" + pad(last.getMonth() + 1) + "-" + pad(last.getDate());
+    }
+    ct.detail = ct.detail || {};
+    ct.detail.taxpayer = [row.taxpayerId || "small"];
+    if (row.ownerId) {
+      ct.signerId = row.ownerId;
+      ct.signerName = (person(row.ownerId) || {}).name || ct.signerName;
+    }
+    saveContracts(cts);
+    return ct;
   };
 
   const dateYMD = (s) => String(s || "").slice(0, 10);
@@ -2534,10 +2814,10 @@ const CRM = (() => {
     SALARY_MONTHS.forEach((m) => ensureSalaryMonth(m));
   };
 
-  const ROLE_KEY = "crm-roles-v1";
+  const ROLE_KEY = "crm-roles-v2";
   const ALL_MENUS = [
     "workbench.html", "marketing-goals.html", "leads.html", "opportunities.html",
-    "contracts.html", "customers.html", "sales-performance.html", "addresses.html",
+    "contracts.html", "customers.html", "sales-performance.html", "gov-services.html", "bookkeeping.html", "addresses.html",
     "customer-items.html", "reimbursements.html", "reports.html", "personnel.html",
     "salary.html", "employees.html", "roles.html"
   ];
@@ -2557,6 +2837,8 @@ const CRM = (() => {
     {
       id: "g-cust", name: "客户中心",
       children: [
+        { id: "gov-services.html", name: "政务服务" },
+        { id: "bookkeeping.html", name: "代账服务" },
         { id: "addresses.html", name: "地址管理" },
         { id: "customer-items.html", name: "客户物品" }
       ]
@@ -2580,9 +2862,9 @@ const CRM = (() => {
     { id: "role-super", no: "ROLE01", name: "超级管理员", desc: "系统最高权限管理", scopeId: "all", statusId: "on", createdAt: "2026-01-08", creator: "系统", menus: ALL_MENUS.slice() },
     { id: "role-sale-mgr", no: "ROLE02", name: "销售经理", desc: "管理销售团队及业绩", scopeId: "dept", statusId: "on", createdAt: "2026-02-12", creator: "朱总", menus: ["workbench.html", "marketing-goals.html", "leads.html", "opportunities.html", "contracts.html", "customers.html", "sales-performance.html", "reports.html"] },
     { id: "role-sale", no: "ROLE03", name: "销售顾问", desc: "跟进线索商机与签约", scopeId: "self", statusId: "on", createdAt: "2026-02-12", creator: "朱总", menus: ["workbench.html", "marketing-goals.html", "leads.html", "opportunities.html", "contracts.html", "customers.html", "sales-performance.html"] },
-    { id: "role-cs", no: "ROLE04", name: "客户经理", desc: "维护客户合同与托管物品", scopeId: "dept", statusId: "on", createdAt: "2026-03-01", creator: "朱总", menus: ["workbench.html", "customers.html", "contracts.html", "addresses.html", "customer-items.html", "sales-performance.html"] },
+    { id: "role-cs", no: "ROLE04", name: "客户经理", desc: "维护客户合同与托管物品", scopeId: "dept", statusId: "on", createdAt: "2026-03-01", creator: "朱总", menus: ["workbench.html", "customers.html", "contracts.html", "gov-services.html", "bookkeeping.html", "addresses.html", "customer-items.html", "sales-performance.html"] },
     { id: "role-wx-mgr", no: "ROLE05", name: "网销主管", desc: "管理网销线索与目标", scopeId: "dept", statusId: "on", createdAt: "2026-03-18", creator: "朱总", menus: ["workbench.html", "marketing-goals.html", "leads.html", "opportunities.html", "sales-performance.html"] },
-    { id: "role-fin", no: "ROLE06", name: "财务专员", desc: "报销核算与薪资发放", scopeId: "all", statusId: "on", createdAt: "2026-04-06", creator: "系统", menus: ["workbench.html", "reimbursements.html", "reports.html", "salary.html"] },
+    { id: "role-fin", no: "ROLE06", name: "财务专员", desc: "报销核算与薪资发放", scopeId: "all", statusId: "on", createdAt: "2026-04-06", creator: "系统", menus: ["workbench.html", "bookkeeping.html", "reimbursements.html", "reports.html", "salary.html"] },
     { id: "role-admin", no: "ROLE07", name: "行政专员", desc: "人事档案与员工账号", scopeId: "dept", statusId: "on", createdAt: "2026-05-20", creator: "朱总", menus: ["workbench.html", "personnel.html", "employees.html", "reimbursements.html"] },
     { id: "role-intern", no: "ROLE08", name: "实习销售", desc: "试用期跟进协助", scopeId: "self", statusId: "off", createdAt: "2026-08-10", creator: "朱总", menus: ["workbench.html", "leads.html"] }
   ];
@@ -2597,6 +2879,14 @@ const CRM = (() => {
     }
     roleSeed().forEach((s) => {
       if (!list.some((a) => a.id === s.id || a.no === s.no)) list.push(s);
+    });
+    list.forEach((role) => {
+      role.menus = role.menus || [];
+      const add = (m) => { if (role.menus.indexOf(m) < 0) role.menus.push(m); };
+      if (role.id === "role-super") ALL_MENUS.forEach(add);
+      if (role.id === "role-cs") { add("gov-services.html"); add("bookkeeping.html"); }
+      if (role.id === "role-fin") add("bookkeeping.html");
+      if (role.id === "role-sale-mgr") add("bookkeeping.html");
     });
     localStorage.setItem(ROLE_KEY, JSON.stringify(list));
     return list;
@@ -2673,6 +2963,17 @@ const CRM = (() => {
     nextCustomerNo,
     syncCustomerLinks,
     customerOptions,
+    loadGov,
+    saveGov,
+    nextGovNo,
+    loadBook,
+    saveBook,
+    nextBookNo,
+    upsertBookFromContract,
+    writeBookToContract,
+    bookMonthlyFee,
+    bookChargeState,
+    isBookContract,
     wanToYuan,
     yuanToWan,
     productToType,
