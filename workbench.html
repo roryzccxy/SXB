@@ -798,8 +798,8 @@
             <svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
           <div class="nav-sub">
-            <button class="nav-item" data-page="pending" type="button">政务服务</button>
-            <button class="nav-item" data-page="pending" type="button">代账服务</button>
+            <a class="nav-item" href="gov-services.html">政务服务</a>
+            <a class="nav-item" href="bookkeeping.html">代账服务</a>
             <a class="nav-item" href="addresses.html">地址管理</a>
             <a class="nav-item" href="customer-items.html">客户物品</a>
           </div>
@@ -997,7 +997,7 @@
               </div>
               <div class="todo-row">
                 <span>待审批代账账单</span>
-                <button class="btn btn-ghost soon" type="button">跳转处理</button>
+                <a class="btn btn-ghost" href="bookkeeping.html?overdue=1">跳转处理</a>
               </div>
             </div>
           </section>
@@ -1076,29 +1076,26 @@
       `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8h16v3H4zm1 4h14v8H5z"/><path d="M8 16h8"/></svg>`
     ];
 
-    const relateData = {
-      year: [
-        ["客户联系人", "12", "个", false],
-        ["客户档案变更", "6", "次", false],
-        ["跟进记录", "88", "条", false],
-        ["客户项目库", "6", "个", false]
-      ],
-      month: [
-        ["客户联系人", "4", "", true],
-        ["客户档案变更", "2", "次", false],
-        ["跟进记录", "21", "条", false],
-        ["客户项目库", "1", "个", false]
-      ],
-      all: [
-        ["客户联系人", "36", "", true],
-        ["客户档案变更", "19", "次", false],
-        ["跟进记录", "246", "条", false],
-        ["客户项目库", "14", "个", false]
-      ]
+    const inRange = (d, range) => {
+      const s = String(d || "").slice(0, 10);
+      if (range === "month") return s.startsWith("2026-08");
+      if (range === "year") return s.startsWith("2026");
+      return true;
     };
-
     const renderRelate = (range) => {
-      document.getElementById("relateStats").innerHTML = relateData[range]
+      const custs = CRM.loadCustomers().filter((c) => inRange(c.createdAt, range));
+      const contacts = new Set(custs.map((c) => c.contact).filter(Boolean)).size;
+      const leads = CRM.loadLeads();
+      let follows = 0;
+      leads.forEach((l) => (l.logs || []).forEach((log) => { if (inRange(log.at, range)) follows += 1; }));
+      const items = CRM.loadItems().filter((x) => inRange(x.inAt, range)).length;
+      const relateData = [
+        ["客户联系人", String(contacts), "个", false],
+        ["客户档案", String(custs.length), "家", false],
+        ["跟进记录", String(follows), "条", false],
+        ["客户物品入库", String(items), "件", false]
+      ];
+      document.getElementById("relateStats").innerHTML = relateData
         .map(([label, num, unit, up], i) => `
           <div class="stat-item">
             <div class="stat-icon">${relateIcons[i]}</div>
@@ -1134,7 +1131,7 @@
         return s.startsWith("2026");
       };
       const leads = CRM.loadLeads().filter((l) => (!personId || l.ownerId === personId) && inCycle(l.createdAt));
-      const converted = leads.filter((l) => l.followResult === "opportunity" || l.oppStageId === "win").length;
+      const converted = leads.filter((l) => l.followResult === "opportunity" || !!l.oppStageId).length;
       const conv = leads.length ? (converted / leads.length) * 100 : 0;
       const items = [
         ["业绩总额", Number(perf.kpis.totalWan || 0).toFixed(1) + "万", "reports.html"],
@@ -1163,20 +1160,7 @@
       });
     });
 
-    const people = [
-      { name: "吴芳", role: "网销一组", amount: 29.3, rate: 128, kind: "f1" },
-      { name: "陈海", role: "网销一组", amount: 26.4, rate: 102, kind: "m1" },
-      { name: "杨文", role: "常规组", amount: 25.2, rate: 96, kind: "m2" },
-      { name: "李承", role: "网销一组", amount: 23.3, rate: 88, kind: "m3" },
-      { name: "赵思源", role: "常规组", amount: 21.8, rate: 79, kind: "m4" }
-    ];
-    const teams = [
-      { name: "网销一组", role: "团队", amount: 86.2, rate: 112, kind: "m1" },
-      { name: "常规组", role: "团队", amount: 64.1, rate: 97, kind: "m2" },
-      { name: "销售三组", role: "团队", amount: 51.8, rate: 86, kind: "m3" },
-      { name: "运营一组", role: "团队", amount: 33.4, rate: 74, kind: "m4" }
-    ];
-
+    const kinds = ["f1", "m1", "m2", "m3", "m4"];
     const av = (kind) => {
       const presets = {
         f1: { bg1: "#c9d6e8", bg2: "#8ea3c0", hair: "#3b2a1a", skin: "#e8c3a4", suit: "#1c1c1c", shirt: "#f4f4f4", long: true },
@@ -1197,21 +1181,51 @@
     const rankState = { mode: "amount", scope: "person", month: 8 };
 
     const fmt = (row) =>
-      rankState.mode === "amount" ? row.amount.toFixed(1) + "万" : row.rate + "%";
+      rankState.mode === "amount" ? Number(row.amount || 0).toFixed(1) + "万" : Math.round(Number(row.rate || 0)) + "%";
+
+    const rankSource = () => {
+      const perf = CRM.salesPerformance({ period: "month", year: 2026, month: rankState.month });
+      if (rankState.scope === "person") {
+        return perf.rows.filter((r) => r.totalWan > 0 || r.targetWan > 0).map((r, i) => ({
+          name: r.name,
+          role: r.deptName,
+          amount: r.totalWan,
+          rate: (r.rate || 0) * 100,
+          kind: kinds[i % kinds.length]
+        }));
+      }
+      const map = new Map();
+      perf.rows.forEach((r) => {
+        const cur = map.get(r.deptId) || { name: r.deptName, role: "团队", amount: 0, target: 0, kind: "m1" };
+        cur.amount += Number(r.totalWan || 0);
+        cur.target += Number(r.targetWan || 0);
+        map.set(r.deptId, cur);
+      });
+      return [...map.values()].map((r, i) => ({
+        ...r,
+        rate: r.target ? (r.amount / r.target) * 100 : 0,
+        kind: kinds[i % kinds.length]
+      })).sort((a, b) => b.amount - a.amount);
+    };
 
     const renderRank = () => {
-      const list = rankState.scope === "person" ? people : teams;
-      const [a, b, c, ...rest] = list;
-      const block = (row, place) => `
+      const list = rankSource();
+      if (!list.length) {
+        document.getElementById("podium").innerHTML = "";
+        document.getElementById("rankList").innerHTML = "<div class=\"rank-row\">本月暂无业绩</div>";
+        return;
+      }
+      const [a, b, c, ...rest] = list.concat([{}, {}, {}]);
+      const block = (row, place) => row && row.name ? `
         <div class="place place-${place}">
           <div class="place-badge">${place}</div>
           <img alt="" src="${av(row.kind)}" />
           <div class="place-name">${row.name}</div>
-          <div class="place-role">${row.role}</div>
+          <div class="place-role">${row.role || ""}</div>
           <div class="place-amount">${fmt(row)}</div>
-        </div>`;
+        </div>` : "";
       document.getElementById("podium").innerHTML = block(b, 2) + block(a, 1) + block(c, 3);
-      document.getElementById("rankList").innerHTML = rest
+      document.getElementById("rankList").innerHTML = rest.filter((row) => row && row.name)
         .map((row, i) => `<div class="rank-row"><div class="rank-no">${i + 4}</div><img alt="" src="${av(row.kind)}" /><div>${row.name}</div><div class="place-amount">${fmt(row)}</div></div>`)
         .join("");
     };

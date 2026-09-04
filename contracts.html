@@ -109,8 +109,8 @@
         <div class="nav-group open">
           <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.5-3 2.8-5 5-5s4.5 2 5 5"/><path d="M16 8h5M18.5 5.5v5"/></svg>客户中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
           <div class="nav-sub">
-            <button class="nav-item" data-page="pending" type="button">政务服务</button>
-            <button class="nav-item" data-page="pending" type="button">代账服务</button>
+            <a class="nav-item" href="gov-services.html">政务服务</a>
+            <a class="nav-item" href="bookkeeping.html">代账服务</a>
             <a class="nav-item" href="addresses.html">地址管理</a>
             <a class="nav-item" href="customer-items.html">客户物品</a>
           </div>
@@ -729,12 +729,14 @@
         const i = list.findIndex((x) => x.id === editingId);
         list[i] = { ...list[i], ...data, id: list[i].id, no: list[i].no, countedSign: list[i].countedSign, countedRenew: list[i].countedRenew, statusId: list[i].statusId === "expired" ? "expired" : data.statusId };
         CRM.saveContracts(list);
+        CRM.upsertBookFromContract(list[i]);
         toast("合同已更新");
       } else {
         const row = { id: "ct-new-" + Date.now(), countedSign: false, countedRenew: false, countedItems: false, ...data };
         CRM.applyContractBusiness(row, { isNew: true, isRenew: false });
         list.unshift(row);
         CRM.saveContracts(list);
+        CRM.upsertBookFromContract(row);
         toast("合同已创建：已回写商机，并入库客户物品");
       }
       $("ctMask").classList.remove("show");
@@ -858,6 +860,10 @@
     if (qs.get("signTo")) {
       fSignTo.value = qs.get("signTo");
       query.signTo = qs.get("signTo");
+    }
+    if (qs.get("name")) {
+      fName.value = qs.get("name");
+      query.name = qs.get("name");
     }
     if (qs.get("no")) {
       fNo.value = qs.get("no");

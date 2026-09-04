@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>代账服务 - CRM</title>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/shell.css" />
+  <script src="js/auth.js"></script>
+  <style>
+    .toolbar { padding: 16px; margin-bottom: 16px; }
+    .filter-grid { display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto 1fr; gap: 10px 8px; align-items: center; }
+    .filter-grid label { font-size: var(--fs-sm); color: var(--text); text-align: right; white-space: nowrap; }
+    .filter-grid input, .filter-grid select { height: 32px; border: 1px solid #d9d9d9; border-radius: var(--radius-sm); padding: 0 10px; font-size: var(--fs-sm); width: 100%; background: #fff; }
+    .dates { display: flex; align-items: center; gap: 6px; }
+    .dates span { color: var(--text-secondary); font-size: 12px; }
+    .filter-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; grid-column: 9 / 11; }
+    .btn-md { height: 32px; padding: 0 14px; font-size: var(--fs-sm); }
+    .list-card { overflow: auto; }
+    .tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--border); }
+    .tab { border: 0; background: none; padding: 8px 12px 10px; color: var(--text-secondary); cursor: pointer; font-size: var(--fs-sm); position: relative; }
+    .tab.active { color: var(--primary); font-weight: 600; }
+    .tab.active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px; background: var(--primary); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 10px 8px; text-align: left; border-top: 1px solid #f0f0f0; white-space: nowrap; }
+    th { background: #fafafa; color: var(--text-secondary); font-weight: 600; }
+    .num { font-weight: 600; letter-spacing: -0.02em; }
+    .link { border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 12px; padding: 0 8px 0 0; }
+    .pill { display: inline-block; min-width: 72px; padding: 0 8px; height: 22px; line-height: 22px; border-radius: 11px; font-size: 12px; text-align: center; }
+    .pill-ok { background: #f6ffed; color: var(--success); }
+    .pill-warn { background: #fff7e6; color: #fa8c16; }
+    .pill-danger { background: #fff1f0; color: var(--danger); }
+    .pager-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: var(--fs-xs); color: var(--text-secondary); }
+    .pager-right { display: flex; align-items: center; gap: 6px; }
+    .pager-bar button { min-width: 24px; height: 24px; border: 1px solid #d9d9d9; background: #fff; border-radius: 4px; cursor: pointer; }
+    .pager-bar button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .pager-bar button:disabled { opacity: 0.45; cursor: default; }
+    .mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; align-items: center; justify-content: center; padding: 16px; }
+    .mask.show { display: flex; }
+    .modal { width: 720px; max-width: 100%; background: #fff; border-radius: var(--radius); max-height: calc(100vh - 24px); overflow: auto; position: relative; }
+    .modal-head { height: 44px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; position: sticky; top: 0; font-weight: 600; z-index: 1; }
+    .modal-close { position: absolute; right: 12px; top: 0; height: 44px; border: 0; background: none; color: #fff; font-size: 22px; cursor: pointer; }
+    .modal-body { padding: 18px 22px 8px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 12px 22px 20px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    .field label { display: block; font-size: var(--fs-xs); color: var(--text-secondary); margin-bottom: 6px; }
+    .field input, .field select, .field textarea { height: 32px; border: 1px solid #d9d9d9; border-radius: var(--radius-sm); padding: 0 10px; font-size: var(--fs-sm); width: 100%; background: #fff; }
+    .field textarea { height: 72px; padding: 8px; resize: vertical; }
+    .ro { background: #f5f5f5 !important; }
+    .full { grid-column: 1 / -1; }
+    .log { font-size: 12px; color: var(--text-secondary); padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+    .jump { color: var(--primary); font-size: 12px; text-decoration: none; margin-right: 16px; }
+    @media (max-width: 1200px) { .filter-grid { grid-template-columns: auto 1fr auto 1fr; } .filter-actions { grid-column: 1 / -1; } }
+  </style>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">CRM</div>
+      <nav class="nav">
+        <a class="nav-item" href="workbench.html">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16l3-4 3 2 4-6"/></svg>销售中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="marketing-goals.html">营销目标</a>
+            <a class="nav-item" href="leads.html">线索管理</a>
+            <a class="nav-item" href="opportunities.html">商机管理</a>
+            <a class="nav-item" href="contracts.html">合同管理</a>
+            <a class="nav-item" href="customers.html">客户管理</a>
+            <a class="nav-item" href="sales-performance.html">销售业绩</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M4 19c.5-3 2.8-5 5-5s4.5 2 5 5"/><path d="M16 8h5M18.5 5.5v5"/></svg>客户中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="gov-services.html">政务服务</a>
+            <a class="nav-item active" href="bookkeeping.html">代账服务</a>
+            <a class="nav-item" href="addresses.html">地址管理</a>
+            <a class="nav-item" href="customer-items.html">客户物品</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>运营中心</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="reimbursements.html">财务报销</a>
+            <a class="nav-item" href="reports.html">经营报表</a>
+            <a class="nav-item" href="personnel.html">人事管理</a>
+            <a class="nav-item" href="salary.html">薪资管理</a>
+            <a class="nav-item" href="employees.html">员工管理</a>
+          </div>
+        </div>
+        <div class="nav-group open">
+          <button class="nav-group-btn" type="button"><span class="left"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>系统管理</span><svg class="chevron" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <div class="nav-sub">
+            <a class="nav-item" href="roles.html">角色权限</a>
+            <button class="nav-item" data-page="pending" type="button">字典管理</button>
+            <button class="nav-item" data-page="pending" type="button">菜单管理</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="header">
+        <div class="dropdown" id="mailDrop">
+          <button class="icon-btn" type="button" data-toggle="mailDrop" aria-label="消息"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg></button>
+          <div class="dropdown-panel"><div class="empty">暂无新消息</div></div>
+        </div>
+        <button class="icon-btn soon" type="button" aria-label="帮助"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 17v-1M12 8a2.2 2.2 0 0 1 1 4c-.6.5-1 1-1 2"/></svg></button>
+        <div class="dropdown" id="userDrop">
+          <button class="user-chip" type="button" data-toggle="userDrop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 19c1-4 3.5-6 7-6s6 2 7 6"/></svg>用户</button>
+          <div class="dropdown-panel"><button type="button" class="soon">个人中心</button><button type="button" data-logout>退出登录</button></div>
+        </div>
+      </header>
+      <main class="content">
+        <section class="card toolbar">
+          <div class="filter-grid">
+            <label>企业名称</label><input id="fName" placeholder="请输入" list="custList" />
+            <label>销售顾问</label><select id="fOwner"></select>
+            <label>业务部门</label><select id="fBizDept"></select>
+            <label>服务部门</label><select id="fSvc"></select>
+            <label>财税顾问</label><select id="fTax"></select>
+            <label>主办会计</label><select id="fAcct"></select>
+            <label>开票员</label><select id="fInv"></select>
+            <label>服务起止时间</label>
+            <div class="dates">
+              <input id="fFrom" type="date" />
+              <span>至</span>
+              <input id="fTo" type="date" />
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary btn-md" id="btnQuery" type="button">查询</button>
+              <button class="btn btn-ghost btn-md" id="btnReset" type="button">重置</button>
+              <button class="btn btn-primary btn-md" id="btnAdd" type="button">新增代账客户</button>
+            </div>
+          </div>
+        </section>
+        <section class="card list-card">
+          <div class="tabs" id="tabs">
+            <button class="tab" data-tab="" type="button">全部</button>
+            <button class="tab active" data-tab="small" type="button">小规模纳税人</button>
+            <button class="tab" data-tab="general" type="button">一般纳税人</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>企业名称</th><th>销售顾问</th><th>业务部门</th><th>财税顾问</th><th>主办会计</th>
+                <th>开票员</th><th>服务部门</th><th>代账金额</th><th>收费单位</th>
+                <th>代账费/月</th><th>记账开始月份</th><th>收费截止月份</th><th>查看详情</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="pager-bar">
+            <span id="pageInfo">共 0 条</span>
+            <div class="pager-right" id="pages"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <datalist id="custList"></datalist>
+
+  <div class="mask" id="addMask">
+    <div class="modal">
+      <div class="modal-head">新增代账客户<button class="modal-close" data-close="addMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="two">
+          <div class="field"><label>编号</label><input id="a_no" class="ro" readonly /></div>
+          <div class="field"><label>企业名称</label><input id="a_name" list="custList" placeholder="匹配客户管理企业" /></div>
+          <div class="field"><label>纳税人类型</label><select id="a_taxp"></select></div>
+          <div class="field"><label>销售顾问</label><select id="a_owner"></select></div>
+          <div class="field"><label>业务部门</label><select id="a_dept"></select></div>
+          <div class="field"><label>收费单位</label><select id="a_pay"></select></div>
+          <div class="field"><label>代账金额（元）</label><input id="a_amt" type="number" min="0" /></div>
+          <div class="field"><label>代账费/月</label><input id="a_month" class="ro" readonly /></div>
+          <div class="field"><label>服务开始</label><input id="a_from" type="date" /></div>
+          <div class="field"><label>服务截止</label><input id="a_to" type="date" /></div>
+          <div class="field full"><label>关联合同</label><input id="a_ct" class="ro" readonly placeholder="保存后自动生成或回写代账合同" /></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="addMask" type="button">取消</button>
+        <button class="btn btn-primary btn-md" id="btnAddOk" type="button">确认新增</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="viewMask">
+    <div class="modal">
+      <div class="modal-head">代账详情<button class="modal-close" data-close="viewMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="two" id="viewGrid"></div>
+        <div class="field full" style="margin-top:12px"><label>办理记录</label><div id="viewLogs"></div></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="viewMask" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="editMask">
+    <div class="modal">
+      <div class="modal-head">编辑代账客户<button class="modal-close" data-close="editMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="two">
+          <div class="field"><label>企业名称</label><input id="e_name" class="ro" readonly /></div>
+          <div class="field"><label>纳税人类型</label><select id="e_taxp"></select></div>
+          <div class="field"><label>销售顾问</label><select id="e_owner"></select></div>
+          <div class="field"><label>业务部门</label><select id="e_dept"></select></div>
+          <div class="field"><label>收费单位</label><select id="e_pay"></select></div>
+          <div class="field"><label>代账金额（元）</label><input id="e_amt" type="number" min="0" /></div>
+          <div class="field"><label>服务开始</label><input id="e_from" type="date" /></div>
+          <div class="field"><label>服务截止</label><input id="e_to" type="date" /></div>
+          <div class="field full"><label>备注</label><textarea id="e_remark" placeholder="选填"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="editMask" type="button">取消</button>
+        <button class="btn btn-primary btn-md" id="btnEditOk" type="button">保存并回写合同</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="actMask">
+    <div class="modal">
+      <div class="modal-head"><span id="actTitle">派单</span><button class="modal-close" data-close="actMask" type="button">×</button></div>
+      <div class="modal-body">
+        <div class="two">
+          <div class="field"><label>企业名称</label><input id="t_name" class="ro" readonly /></div>
+          <div class="field" id="rowSvc"><label>服务部门</label><select id="t_svc"></select></div>
+          <div class="field" id="rowTax"><label>财税顾问</label><select id="t_tax"></select></div>
+          <div class="field" id="rowAcct"><label>主办会计</label><select id="t_acct"></select></div>
+          <div class="field" id="rowInv"><label>开票员</label><select id="t_inv"></select></div>
+          <div class="field" id="rowAmt" style="display:none"><label>续费金额（元）</label><input id="t_amt" type="number" min="0" /></div>
+          <div class="field" id="rowEnd" style="display:none"><label>新截止日</label><input id="t_end" type="date" /></div>
+          <div class="field full" id="rowNote"><label id="tNoteLab">说明</label><textarea id="t_note" placeholder="请输入"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-md" data-close="actMask" type="button">取消</button>
+        <button class="btn btn-primary btn-md" id="btnActOk" type="button">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/crm-store.js"></script>
+  <script>
+    const toast = (m) => { const el = document.createElement("div"); el.className = "toast"; el.textContent = m; document.getElementById("toasts").appendChild(el); setTimeout(() => el.remove(), 1800); };
+    document.querySelectorAll(".nav-group-btn").forEach((b) => b.addEventListener("click", () => b.parentElement.classList.toggle("open")));
+    document.querySelectorAll("[data-page=pending],.soon").forEach((el) => el.addEventListener("click", () => toast("功能即将开放")));
+    document.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", (e) => { e.stopPropagation(); document.querySelectorAll(".dropdown").forEach((d) => d.classList.toggle("open", d.id === btn.dataset.toggle && !d.classList.contains("open"))); });
+    });
+    document.addEventListener("click", () => document.querySelectorAll(".dropdown").forEach((d) => d.classList.remove("open")));
+    document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => document.getElementById(b.dataset.close).classList.remove("show")));
+
+    const $ = (id) => document.getElementById(id);
+    const fillSel = (el, list, all) => { el.innerHTML = `<option value="">${all}</option>` + list.map((x) => `<option value="${x.id}">${x.name}</option>`).join(""); };
+    const staff = CRM.loadStaff().filter((s) => s.statusId !== "left");
+    const staffOpt = staff.map((s) => ({ id: s.id, name: s.name }));
+    const finOpt = staff.filter((s) => s.deptId === "fin" || s.postId === "acct" || s.postId === "acct_mgr").map((s) => ({ id: s.id, name: s.name }));
+    const finList = finOpt.length ? finOpt : staffOpt;
+    fillSel($("fOwner"), staffOpt, "请选择");
+    fillSel($("fBizDept"), CRM.dicts.depts, "请选择");
+    fillSel($("fSvc"), CRM.dicts.svcTeams, "请选择");
+    fillSel($("fTax"), finList, "请选择");
+    fillSel($("fAcct"), finList, "请选择");
+    fillSel($("fInv"), finList, "请选择");
+    fillSel($("a_taxp"), CRM.dicts.taxpayers, "请选择");
+    fillSel($("a_owner"), staffOpt, "请选择");
+    fillSel($("a_dept"), CRM.dicts.depts, "请选择");
+    fillSel($("a_pay"), CRM.dicts.payForms, "请选择");
+    fillSel($("e_taxp"), CRM.dicts.taxpayers, "请选择");
+    fillSel($("e_owner"), staffOpt, "请选择");
+    fillSel($("e_dept"), CRM.dicts.depts, "请选择");
+    fillSel($("e_pay"), CRM.dicts.payForms, "请选择");
+    fillSel($("t_svc"), CRM.dicts.svcTeams, "请选择");
+    fillSel($("t_tax"), finList, "请选择");
+    fillSel($("t_acct"), finList, "请选择");
+    fillSel($("t_inv"), finList, "请选择");
+    $("custList").innerHTML = CRM.loadCustomers().slice(0, 120).map((c) => `<option value="${c.name}"></option>`).join("");
+
+    const who = (id) => {
+      if (!id) return "--";
+      const p = CRM.person(id) || staff.find((s) => s.id === id);
+      return (p && p.name) || "--";
+    };
+    const now = () => CRM.HR_ASOF + " 16:03";
+    const dash = (v) => (v === 0 || v ? v : "--");
+
+    let list = CRM.loadBook();
+    let page = 1;
+    const pageSize = 10;
+    let tab = "small";
+    let query = {};
+    let actId = "";
+    let actKind = "";
+    let editId = "";
+
+    const persist = (row) => {
+      const i = list.findIndex((x) => x.id === row.id);
+      if (i >= 0) list[i] = row; else list.unshift(row);
+      CRM.saveBook(list);
+      list = CRM.loadBook();
+      render();
+    };
+
+    const filtered = () => list.filter((r) => {
+      if (tab && r.taxpayerId !== tab) return false;
+      if (query.overdue) {
+        const st = CRM.bookChargeState(r.chargeEnd);
+        if (st.remain >= 0) return false;
+      }
+      if (query.name && !(r.customerName || "").includes(query.name)) return false;
+      if (query.ownerId && r.ownerId !== query.ownerId) return false;
+      if (query.bizDeptId && r.bizDeptId !== query.bizDeptId) return false;
+      if (query.svcDeptId && r.svcDeptId !== query.svcDeptId) return false;
+      if (query.taxAdvId && r.taxAdvId !== query.taxAdvId) return false;
+      if (query.accountantId && r.accountantId !== query.accountantId) return false;
+      if (query.invoicerId && r.invoicerId !== query.invoicerId) return false;
+      const from = r.serviceFrom || "";
+      const to = r.serviceTo || "";
+      if (query.from && to && to < query.from) return false;
+      if (query.to && from && from > query.to) return false;
+      return true;
+    });
+
+    const pagerBtns = (pages) => {
+      const nums = [];
+      if (pages <= 8) for (let i = 1; i <= pages; i++) nums.push(i);
+      else if (page <= 4) nums.push(1, 2, 3, 4, 5, 6, "…", pages);
+      else if (page >= pages - 3) nums.push(1, "…", pages - 5, pages - 4, pages - 3, pages - 2, pages - 1, pages);
+      else nums.push(1, "…", page - 1, page, page + 1, "…", pages);
+      return `<button type="button" data-p="${page - 1}" ${page <= 1 ? "disabled" : ""}>‹</button>` +
+        nums.map((n) => n === "…" ? `<span>…</span>` : `<button class="${n === page ? "on" : ""}" data-p="${n}" type="button">${n}</button>`).join("") +
+        `<button type="button" data-p="${page + 1}" ${page >= pages ? "disabled" : ""}>›</button>`;
+    };
+
+    const ops = (r) => {
+      if (!r.dispatchAt) return `<button class="link" data-act="dispatch" data-id="${r.id}" type="button">派单</button>`;
+      return `<button class="link" data-act="edit" data-id="${r.id}" type="button">编辑</button><button class="link" data-act="progress" data-id="${r.id}" type="button">添加进度</button><button class="link" data-act="renew" data-id="${r.id}" type="button">续费</button><button class="link" data-act="move" data-id="${r.id}" type="button">移交</button>`;
+    };
+
+    const pill = (r) => {
+      const st = CRM.bookChargeState(r.chargeEnd);
+      return `<span class="pill pill-${st.kind}">${st.text}</span>`;
+    };
+
+    const render = () => {
+      list = CRM.loadBook();
+      const rows = filtered();
+      const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+      if (page > pages) page = pages;
+      $("pageInfo").textContent = `共 ${rows.length} 条`;
+      $("tbody").innerHTML = rows.slice((page - 1) * pageSize, page * pageSize).map((r) => `<tr>
+        <td>${r.customerName}</td>
+        <td>${who(r.ownerId)}</td>
+        <td>${CRM.dictName("depts", r.bizDeptId)}</td>
+        <td>${who(r.taxAdvId)}</td>
+        <td>${who(r.accountantId)}</td>
+        <td>${who(r.invoicerId)}</td>
+        <td>${r.svcDeptId ? CRM.dictName("svcTeams", r.svcDeptId) : "--"}</td>
+        <td class="num">${Number(r.amountYuan || 0).toLocaleString("zh-CN")}</td>
+        <td>${CRM.dictName("payForms", r.payForm)}</td>
+        <td class="num">${CRM.bookMonthlyFee(r.amountYuan, r.payForm).toLocaleString("zh-CN")}</td>
+        <td>${r.startMonth || "--"}</td>
+        <td>${pill(r)}</td>
+        <td><button class="link" data-act="view" data-id="${r.id}" type="button">查看详情</button></td>
+        <td>${ops(r)}</td>
+      </tr>`).join("") || `<tr><td colspan="14">暂无代账客户</td></tr>`;
+      $("pages").innerHTML = pagerBtns(pages);
+    };
+
+    const fillFromCustomer = (prefix) => {
+      const name = $(prefix + "_name") ? $(prefix + "_name").value.trim() : $("a_name").value.trim();
+      const cu = CRM.loadCustomers().find((c) => c.name === name);
+      const ct = CRM.loadContracts().filter(CRM.isBookContract).sort((a, b) => String(b.endDate || "").localeCompare(String(a.endDate || ""))).find((c) => c.customerName === name);
+      if (cu) {
+        if (cu.ownerId) $("a_owner").value = cu.ownerId;
+        const p = CRM.person(cu.ownerId) || staff.find((s) => s.id === cu.ownerId);
+        if (p) $("a_dept").value = p.deptId || "";
+      }
+      if (ct) {
+        $("a_amt").value = ct.amountYuan || "";
+        $("a_pay").value = ct.payForm || "year";
+        $("a_from").value = (ct.startDate || "").slice(0, 10);
+        $("a_to").value = (ct.endDate || "").slice(0, 10);
+        $("a_ct").value = ct.no || "";
+        if (ct.signerId) $("a_owner").value = ct.signerId;
+        const p = CRM.person(ct.signerId);
+        if (p) $("a_dept").value = p.deptId || "";
+        const ns = (ct.detail && ct.detail.taxpayer) || [];
+        $("a_taxp").value = ns.indexOf("general") >= 0 ? "general" : (ns[0] || "small");
+      }
+      $("a_month").value = CRM.bookMonthlyFee($("a_amt").value, $("a_pay").value);
+    };
+
+    const openAdd = () => {
+      $("a_no").value = CRM.nextBookNo(list);
+      $("a_name").value = $("a_owner").value = $("a_dept").value = $("a_ct").value = "";
+      $("a_taxp").value = "small";
+      $("a_pay").value = "year";
+      $("a_amt").value = "";
+      $("a_month").value = "";
+      $("a_from").value = "2026-08-01";
+      $("a_to").value = CRM.endByDuration("2026-08-01", 1, 0);
+      $("addMask").classList.add("show");
+    };
+
+    const openEdit = (id) => {
+      const r = list.find((x) => x.id === id);
+      if (!r) return;
+      editId = id;
+      $("e_name").value = r.customerName;
+      $("e_taxp").value = r.taxpayerId || "small";
+      $("e_owner").value = r.ownerId || "";
+      $("e_dept").value = r.bizDeptId || "";
+      $("e_pay").value = r.payForm || "year";
+      $("e_amt").value = r.amountYuan || "";
+      $("e_from").value = r.serviceFrom || "";
+      $("e_to").value = r.serviceTo || "";
+      $("e_remark").value = r.remark || "";
+      $("editMask").classList.add("show");
+    };
+
+    const openView = (id) => {
+      const r = list.find((x) => x.id === id);
+      if (!r) return;
+      const cell = (k, v) => `<div class="field"><label>${k}</label><input class="ro" readonly value="${v || "--"}" /></div>`;
+      const st = CRM.bookChargeState(r.chargeEnd);
+      $("viewGrid").innerHTML = [
+        cell("编号", r.no), cell("企业名称", r.customerName),
+        cell("纳税人类型", CRM.dictName("taxpayers", r.taxpayerId)), cell("销售顾问", who(r.ownerId)),
+        cell("业务部门", CRM.dictName("depts", r.bizDeptId)), cell("服务部门", CRM.dictName("svcTeams", r.svcDeptId)),
+        cell("财税顾问", who(r.taxAdvId)), cell("主办会计", who(r.accountantId)),
+        cell("开票员", who(r.invoicerId)), cell("收费单位", CRM.dictName("payForms", r.payForm)),
+        cell("代账金额", Number(r.amountYuan || 0).toLocaleString("zh-CN")), cell("代账费/月", CRM.bookMonthlyFee(r.amountYuan, r.payForm)),
+        cell("记账开始", r.startMonth), cell("收费截止", st.text),
+        cell("关联合同", r.contractNo), cell("派单时间", r.dispatchAt)
+      ].join("") + `<div class="field full">
+        <a class="jump" href="customers.html?name=${encodeURIComponent(r.customerName)}">客户档案</a>
+        <a class="jump" href="contracts.html?name=${encodeURIComponent(r.customerName)}${r.contractNo ? "&no=" + encodeURIComponent(r.contractNo) : ""}">代账合同</a>
+        <a class="jump" href="personnel.html?person=${encodeURIComponent(r.ownerId || "")}">销售顾问</a>
+        <a class="jump" href="customer-items.html?customer=${encodeURIComponent(r.customerName)}">客户物品</a>
+      </div>`;
+      $("viewLogs").innerHTML = (r.logs || []).map((l) => `<div class="log">${l.at} · ${l.title} · ${l.text || ""}</div>`).join("") || `<div class="log">暂无记录</div>`;
+      $("viewMask").classList.add("show");
+    };
+
+    const showActRows = (kind) => {
+      const people = kind === "progress" ? "none" : "";
+      $("rowSvc").style.display = people;
+      $("rowTax").style.display = people;
+      $("rowAcct").style.display = people;
+      $("rowInv").style.display = people;
+      $("rowAmt").style.display = kind === "renew" ? "" : "none";
+      $("rowEnd").style.display = kind === "renew" ? "" : "none";
+    };
+
+    const openAct = (kind, id) => {
+      const r = list.find((x) => x.id === id);
+      if (!r) return;
+      actKind = kind; actId = id;
+      $("t_name").value = r.customerName;
+      $("t_svc").value = r.svcDeptId || "";
+      $("t_tax").value = r.taxAdvId || "";
+      $("t_acct").value = r.accountantId || "";
+      $("t_inv").value = r.invoicerId || "";
+      $("t_note").value = "";
+      $("t_amt").value = r.amountYuan || "";
+      $("t_end").value = CRM.addYMD(r.serviceTo || CRM.HR_ASOF, 1, 0, 0);
+      showActRows(kind);
+      $("actTitle").textContent = kind === "dispatch" ? "派单" : kind === "move" ? "移交" : kind === "renew" ? "续费" : "添加进度";
+      $("tNoteLab").textContent = kind === "progress" ? "进度说明" : kind === "renew" ? "续费说明" : "说明";
+      $("actMask").classList.add("show");
+    };
+
+    $("a_name").addEventListener("change", () => fillFromCustomer("a"));
+    $("a_owner").addEventListener("change", () => {
+      const s = staff.find((x) => x.id === $("a_owner").value);
+      if (s) $("a_dept").value = s.deptId || "";
+    });
+    $("e_owner").addEventListener("change", () => {
+      const s = staff.find((x) => x.id === $("e_owner").value);
+      if (s) $("e_dept").value = s.deptId || "";
+    });
+    const syncMonth = () => { $("a_month").value = CRM.bookMonthlyFee($("a_amt").value, $("a_pay").value); };
+    $("a_amt").addEventListener("input", syncMonth);
+    $("a_pay").addEventListener("change", syncMonth);
+
+    $("btnAdd").addEventListener("click", openAdd);
+    $("btnAddOk").addEventListener("click", () => {
+      const name = $("a_name").value.trim();
+      const amt = Number($("a_amt").value);
+      if (!name) { toast("请填写企业名称"); return; }
+      if (!$("a_taxp").value) { toast("请选择纳税人类型"); return; }
+      if (!(amt > 0)) { toast("请填写代账金额"); return; }
+      const cu = CRM.loadCustomers().find((c) => c.name === name);
+      if (!cu) { toast("请先在客户管理中维护该企业"); return; }
+      if (list.some((x) => x.customerName === name)) { toast("该企业已在代账服务中"); return; }
+      const ownerId = $("a_owner").value || cu.ownerId || "";
+      const p = staff.find((s) => s.id === ownerId) || CRM.person(ownerId) || {};
+      const start = $("a_from").value || CRM.HR_ASOF;
+      const end = $("a_to").value || CRM.endByDuration(start, 1, 0);
+      let cts = CRM.loadContracts();
+      let ct = cts.filter(CRM.isBookContract).find((c) => c.customerName === name);
+      if (!ct) {
+        ct = {
+          id: "ct-bk-" + Date.now(),
+          no: CRM.nextContractNo(cts),
+          oppId: cu.oppId || "",
+          leadId: cu.leadId || "",
+          customerName: name,
+          contact: cu.contact || name,
+          phone: cu.phone || "",
+          productIds: ["book"],
+          typeId: "book",
+          amountYuan: amt,
+          startDate: start,
+          endDate: end,
+          nextFollowAt: CRM.addYMD(start, 0, 0, 7),
+          statusId: "signed",
+          signDate: start,
+          signerId: ownerId,
+          signerName: p.name || who(ownerId),
+          signCompany: "上海税小理科技有限公司",
+          payForm: $("a_pay").value || "year",
+          firstPay: amt,
+          paidYuan: amt,
+          payStatusId: "paid",
+          payAt: start,
+          tailPay: 0,
+          invoice: "normal",
+          years: 1,
+          giftMonths: 0,
+          giftReg: false,
+          source: "old",
+          remark: "代账服务新增",
+          extra: "",
+          countedSign: false,
+          countedRenew: false,
+          countedItems: false,
+          detail: { taxpayer: [$("a_taxp").value] }
+        };
+        CRM.applyContractBusiness(ct, { isNew: true, isRenew: false });
+        cts.unshift(ct);
+        CRM.saveContracts(cts);
+      } else {
+        ct.amountYuan = amt;
+        ct.payForm = $("a_pay").value || ct.payForm;
+        ct.startDate = start;
+        ct.endDate = end;
+        ct.detail = ct.detail || {};
+        ct.detail.taxpayer = [$("a_taxp").value];
+        CRM.saveContracts(cts);
+        CRM.upsertBookFromContract(ct);
+      }
+      list = CRM.loadBook();
+      const row = list.find((x) => x.customerName === name);
+      if (row) {
+        row.taxpayerId = $("a_taxp").value;
+        row.ownerId = ownerId;
+        row.bizDeptId = $("a_dept").value || p.deptId || "";
+        row.logs = row.logs || [];
+        row.logs.unshift({ at: now(), title: "新增代账客户", text: CRM.currentUser().name });
+        CRM.saveBook(list);
+      }
+      $("addMask").classList.remove("show");
+      toast("已新增，并同步代账合同");
+      render();
+    });
+
+    $("btnEditOk").addEventListener("click", () => {
+      const r = list.find((x) => x.id === editId);
+      if (!r) return;
+      r.taxpayerId = $("e_taxp").value;
+      r.ownerId = $("e_owner").value;
+      r.bizDeptId = $("e_dept").value;
+      r.payForm = $("e_pay").value;
+      r.amountYuan = Number($("e_amt").value) || 0;
+      r.serviceFrom = $("e_from").value;
+      r.serviceTo = $("e_to").value;
+      r.startMonth = (r.serviceFrom || "").slice(0, 7);
+      r.chargeEnd = (r.serviceTo || "").slice(0, 7);
+      r.remark = $("e_remark").value.trim();
+      r.logs = r.logs || [];
+      r.logs.unshift({ at: now(), title: "编辑", text: "回写合同金额与服务期" });
+      CRM.writeBookToContract(r);
+      persist(r);
+      $("editMask").classList.remove("show");
+      toast("已保存并回写合同");
+    });
+
+    $("btnActOk").addEventListener("click", () => {
+      const r = list.find((x) => x.id === actId);
+      if (!r) return;
+      const note = $("t_note").value.trim();
+      if (actKind === "dispatch" || actKind === "move") {
+        if (!$("t_tax").value && !$("t_acct").value && !$("t_inv").value) { toast("请指定财税顾问、主办会计或开票员"); return; }
+        r.svcDeptId = $("t_svc").value;
+        r.taxAdvId = $("t_tax").value;
+        r.accountantId = $("t_acct").value;
+        r.invoicerId = $("t_inv").value;
+        if (actKind === "dispatch") r.dispatchAt = now();
+        r.logs = r.logs || [];
+        r.logs.unshift({ at: now(), title: actKind === "dispatch" ? "派单" : "移交", text: note || ("顾问 " + who(r.taxAdvId) + " / 会计 " + who(r.accountantId)) });
+      } else if (actKind === "renew") {
+        const amt = Number($("t_amt").value);
+        const end = $("t_end").value;
+        if (!(amt > 0) || !end) { toast("请填写续费金额与新截止日"); return; }
+        const cts = CRM.loadContracts();
+        const old = cts.find((c) => c.id === r.contractId) || cts.filter(CRM.isBookContract).find((c) => c.customerName === r.customerName);
+        const start = r.serviceTo ? CRM.addYMD(r.serviceTo, 0, 0, 1) : CRM.HR_ASOF;
+        const row = {
+          ...(old || {}),
+          id: "ct-bk-renew-" + Date.now(),
+          no: CRM.nextContractNo(cts),
+          customerName: r.customerName,
+          productIds: ["book"],
+          typeId: "book",
+          amountYuan: amt,
+          startDate: start,
+          endDate: end,
+          signDate: start,
+          statusId: "signed",
+          signerId: r.ownerId,
+          signerName: who(r.ownerId),
+          payForm: r.payForm || "year",
+          firstPay: amt,
+          paidYuan: amt,
+          payStatusId: "paid",
+          payAt: start,
+          renewFrom: (old && old.no) || r.contractNo || "",
+          countedSign: true,
+          countedRenew: false,
+          countedItems: false,
+          detail: { taxpayer: [r.taxpayerId || "small"] }
+        };
+        CRM.applyContractBusiness(row, { isNew: false, isRenew: true });
+        cts.unshift(row);
+        CRM.saveContracts(cts);
+        r.amountYuan = amt;
+        r.serviceFrom = start;
+        r.serviceTo = end;
+        r.startMonth = start.slice(0, 7);
+        r.chargeEnd = end.slice(0, 7);
+        r.contractId = row.id;
+        r.contractNo = row.no;
+        r.logs = r.logs || [];
+        r.logs.unshift({ at: now(), title: "续费", text: note || ("新合同 " + row.no + " / ¥" + amt) });
+      } else {
+        r.logs = r.logs || [];
+        r.logs.unshift({ at: now(), title: "添加进度", text: note || "已跟进代账服务" });
+      }
+      persist(r);
+      $("actMask").classList.remove("show");
+      toast("已保存");
+    });
+
+    $("btnQuery").addEventListener("click", () => {
+      query = {
+        name: $("fName").value.trim(), ownerId: $("fOwner").value, bizDeptId: $("fBizDept").value,
+        svcDeptId: $("fSvc").value, taxAdvId: $("fTax").value, accountantId: $("fAcct").value,
+        invoicerId: $("fInv").value, from: $("fFrom").value, to: $("fTo").value, overdue: query.overdue
+      };
+      page = 1; render();
+    });
+    $("btnReset").addEventListener("click", () => {
+      $("fName").value = $("fOwner").value = $("fBizDept").value = $("fSvc").value = $("fTax").value = $("fAcct").value = $("fInv").value = $("fFrom").value = $("fTo").value = "";
+      query = {}; page = 1; tab = "small";
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "small"));
+      render();
+    });
+    $("tabs").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-tab]");
+      if (!b) return;
+      tab = b.dataset.tab;
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === b));
+      page = 1; render();
+    });
+    $("pages").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-p]");
+      if (!b || b.disabled) return;
+      const n = Number(b.dataset.p);
+      if (n >= 1) { page = n; render(); }
+    });
+    $("tbody").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]");
+      if (!b) return;
+      if (b.dataset.act === "view") openView(b.dataset.id);
+      else if (b.dataset.act === "edit") openEdit(b.dataset.id);
+      else openAct(b.dataset.act, b.dataset.id);
+    });
+
+    const qs = new URLSearchParams(location.search);
+    if (qs.get("name")) { $("fName").value = qs.get("name"); query.name = qs.get("name"); tab = ""; document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "")); }
+    if (qs.get("overdue") === "1") { query.overdue = true; tab = ""; document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "")); }
+    render();
+  </script>
+</body>
+</html>
