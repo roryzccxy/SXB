@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>新建报销 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" onclick="history.back()">‹</button>
+          <h1>新建报销申请</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body">
+          <section class="card card-pad">
+            <div class="form">
+              <div class="field"><label>报销编号</label><input id="r_no" class="ro" disabled /></div>
+              <div class="field"><label>申请人</label><input id="r_man" class="ro" disabled /></div>
+              <div class="field"><label>部门</label><input id="r_dept" class="ro" disabled /></div>
+              <div class="field"><label class="req">报销类型</label><select id="r_type"></select></div>
+              <div class="field"><label class="req">报销金额</label><input id="r_amt" type="number" min="0" placeholder="请输入金额" /></div>
+              <div class="field"><label>发票张数</label><input id="r_inv" type="number" min="0" placeholder="请输入张数" /></div>
+              <div class="field"><label class="req">申请日期</label><input id="r_date" type="date" /></div>
+              <div class="field"><label>审批人</label><input id="r_ap" value="朱总" /></div>
+              <div class="field"><label>关联客户</label><input id="r_cust" list="custList" placeholder="招待/差旅可匹配客户（选填）" /><datalist id="custList"></datalist></div>
+              <div class="field"><label class="req">报销事由</label><textarea id="r_why" placeholder="请输入报销事由"></textarea></div>
+              <div class="field"><label>备注</label><textarea id="r_note" placeholder="选填"></textarea></div>
+              <div class="field">
+                <label>发票照片</label>
+                <label class="upload">
+                  <input id="r_file" type="file" accept="image/*,.pdf" capture="environment" multiple />
+                  <strong>拍照或选择发票</strong>
+                  <span>支持 jpg/png/pdf，便于外出报账</span>
+                </label>
+                <div class="files" id="r_files"></div>
+              </div>
+            </div>
+            <div class="foot-btn">
+              <button class="btn btn-ghost" type="button" onclick="history.back()">取消</button>
+              <button class="btn btn-primary" type="button" id="ok">提交申请</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const list = CRM.loadReimbs();
+    const u = Mini.user();
+    const p = CRM.person(u.id) || CRM.dicts.people.find((x) => x.name === u.name) || { id: u.id === "admin" ? "zhu" : u.id, name: u.name === "用户" ? "朱总" : u.name, deptId: u.deptId || "fin" };
+    Mini.fillSel(r_type, CRM.dicts.reimbTypes, "请选择");
+    r_date.value = Mini.today();
+    r_no.value = CRM.nextReimbNo(list, r_date.value);
+    r_man.value = p.name;
+    r_dept.value = CRM.dictName("depts", p.deptId);
+    document.getElementById("custList").innerHTML = CRM.reimbCustHint().slice(0, 20).map((n) => `<option value="${n}"></option>`).join("");
+    const files = [];
+    document.getElementById("r_file").addEventListener("change", (e) => {
+      Array.from(e.target.files || []).forEach((f) => files.push({ name: f.name }));
+      document.getElementById("r_files").textContent = files.map((f) => f.name).join("、") || "";
+      if (!r_inv.value) r_inv.value = files.length;
+    });
+    r_date.addEventListener("change", () => { r_no.value = CRM.nextReimbNo(list, r_date.value); });
+    document.getElementById("ok").onclick = () => {
+      const typeId = r_type.value;
+      const amount = Number(r_amt.value);
+      const reason = r_why.value.trim();
+      if (!typeId || !reason) { Mini.toast("请填写类型和事由"); return; }
+      if (!(amount > 0)) { Mini.toast("请填写报销金额"); return; }
+      if (!r_date.value) { Mini.toast("请选择申请日期"); return; }
+      const ap = CRM.dicts.people.find((x) => x.name === r_ap.value.trim()) || { id: "zhu", name: "朱总" };
+      const row = {
+        id: "rb-" + Date.now(),
+        no: r_no.value,
+        applicantId: p.id,
+        deptId: p.deptId,
+        typeId,
+        amount,
+        invoices: Number(r_inv.value || files.length || 0),
+        applyAt: r_date.value,
+        statusId: "wait",
+        approverId: ap.id,
+        approvedAt: "",
+        reason,
+        remark: r_note.value.trim(),
+        customerName: r_cust.value.trim(),
+        files: files.map((f, i) => ({ name: f.name, amount: i === 0 ? amount : 0, date: r_date.value })),
+        logs: [{ at: r_date.value + " 09:12", user: p.name, title: "提交申请", text: "提交" + CRM.dictName("reimbTypes", typeId) + "报销申请，金额" + Mini.yuan(amount) }]
+      };
+      list.unshift(row);
+      CRM.saveReimbs(list);
+      Mini.toast("已提交，待朱总审批");
+      setTimeout(() => location.href = "reimbursements.html", 400);
+    };
+  </script>
+</body>
+</html>

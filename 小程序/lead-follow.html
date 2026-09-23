@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>添加跟进 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" id="btnBack">‹</button>
+          <h1>添加跟进</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body">
+          <section class="card card-pad">
+            <div class="form">
+              <div class="field"><label>跟进对象</label><input id="name" class="ro" disabled /></div>
+              <div class="field" id="leadFields">
+                <label>跟进状态</label><select id="fu_status"></select>
+              </div>
+              <div class="field" id="oppFields" hidden>
+                <label>转换商机阶段</label><select id="fu_stage"></select>
+              </div>
+              <div class="field"><label>跟进时间</label><input id="fu_time" type="datetime-local" /></div>
+              <div class="field" id="fuNextRow"><label>预计下次跟进时间</label><input id="fu_next" type="datetime-local" /></div>
+              <div class="field"><label id="fuLab">跟进内容</label><textarea id="fu_text" placeholder="请输入跟进内容"></textarea></div>
+            </div>
+            <div class="foot-btn">
+              <button class="btn btn-ghost" type="button" id="btnBack2">取消</button>
+              <button class="btn btn-primary" type="button" id="ok">确认</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const leadId = Mini.qs("id");
+    const oppId = Mini.qs("opp");
+    const back = () => history.length > 1 ? history.back() : location.href = oppId ? "customers.html" : "leads.html";
+    document.getElementById("btnBack").onclick = document.getElementById("btnBack2").onclick = back;
+    Mini.fillSel(fu_status, CRM.dicts.followResults.filter((x) => x.id !== "opportunity"), "请选择");
+    Mini.fillSel(fu_stage, CRM.dicts.oppStages.filter((x) => x.id !== "win"), "请选择");
+    const nowDT = Mini.toLocal(Mini.now());
+    fu_time.value = nowDT;
+
+    const syncLead = () => {
+      const st = fu_status.value;
+      const map = { following: ["跟进内容", "请输入跟进内容"], invalid: ["无效说明", "请输入无效说明"], abandon: ["放弃说明", "请输入放弃说明"] };
+      const [lab, ph] = map[st] || map.following;
+      fuLab.textContent = lab;
+      fu_text.placeholder = ph;
+      document.getElementById("fuNextRow").style.display = st === "following" ? "" : "none";
+    };
+    fu_status.addEventListener("change", syncLead);
+
+    if (oppId) {
+      document.getElementById("leadFields").hidden = true;
+      document.getElementById("oppFields").hidden = false;
+      const o = CRM.loadOpps().find((x) => x.id === oppId);
+      if (!o) { Mini.toast("商机不存在"); back(); }
+      else {
+        name.value = o.customerName;
+        fu_stage.value = o.stageId || "intent";
+        const syncOpp = () => {
+          const lost = fu_stage.value === "lost";
+          fuLab.textContent = lost ? "流失说明" : "跟进内容";
+          fu_text.placeholder = lost ? "请输入流失说明" : "请输入跟进内容";
+          document.getElementById("fuNextRow").style.display = lost ? "none" : "";
+        };
+        fu_stage.addEventListener("change", syncOpp);
+        syncOpp();
+      }
+    } else {
+      const row = CRM.loadLeads().find((x) => x.id === leadId);
+      if (!row) { Mini.toast("线索不存在"); back(); }
+      else {
+        name.value = row.companyName || row.name || row.phone;
+        fu_status.value = ["following", "abandon", "invalid"].includes(row.followResult) ? row.followResult : "following";
+        fu_next.value = Mini.toLocal(row.nextFollowAt);
+        syncLead();
+      }
+    }
+
+    document.getElementById("ok").onclick = () => {
+      const t = Mini.fromLocal(fu_time.value) || Mini.now();
+      const user = Mini.user().name;
+      if (oppId) {
+        const opps = CRM.loadOpps();
+        const o = opps.find((x) => x.id === oppId);
+        const nextStage = fu_stage.value || o.stageId;
+        if (nextStage === "lost" && !fu_text.value.trim()) { Mini.toast("流失商机请填写流失说明"); return; }
+        o.stageId = nextStage;
+        o.lastFollowAt = t;
+        if (nextStage === "lost") { o.lostReason = fu_text.value; o.lostAt = t; o.note = fu_text.value; }
+        else o.note = fu_text.value;
+        CRM.saveOpps(opps);
+        const leads = CRM.loadLeads();
+        const lead = leads.find((l) => l.id === o.leadId);
+        if (lead) {
+          lead.oppStageId = o.stageId;
+          lead.lastFollowAt = t;
+          lead.logs = lead.logs || [];
+          lead.logs.unshift({ at: t, type: "follow", user, text: nextStage === "lost" ? ("流失说明：" + (fu_text.value || "—")) : ("跟进内容：" + (fu_text.value || "—")) });
+          CRM.saveLeads(leads);
+        }
+        Mini.toast(nextStage === "lost" ? "已转为流失商机" : "跟进已回写线索");
+        setTimeout(() => Mini.openCustomer({ name: o.customerName, leadId: o.leadId, phone: o.phone }), 400);
+        return;
+      }
+      const leads = CRM.loadLeads();
+      const row = leads.find((x) => x.id === leadId);
+      const st = fu_status.value;
+      const from = row.followResult;
+      row.followResult = st;
+      row.lastFollowAt = t;
+      if (st === "following") row.nextFollowAt = Mini.fromLocal(fu_next.value);
+      const label = { following: "跟进内容", invalid: "无效说明", abandon: "放弃说明" }[st];
+      row.logs = row.logs || [];
+      row.logs.unshift({ at: t, type: "follow", status: st, from, user, text: `${label}：${fu_text.value || "—"}` });
+      CRM.saveLeads(leads);
+      Mini.toast("跟进已写入详情时间轴");
+      setTimeout(() => location.href = "lead-form.html?id=" + encodeURIComponent(leadId), 400);
+    };
+  </script>
+</body>
+</html>

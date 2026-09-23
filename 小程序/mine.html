@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>我的 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <span class="nav-side placeholder"></span>
+          <h1>我的</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body" id="main"></main>
+        <nav class="tabbar"></nav>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount({ tab: "mine" });
+    const u = Mini.user();
+    const name = u.name === "用户" ? "朱总" : u.name;
+    const dept = CRM.dictName("depts", u.deptId) || (u.isAdmin ? "管理" : "—");
+    const oid = Mini.ownerId() || (u.id === "admin" ? "chenhai" : u.id);
+    const perf = CRM.salesPerformance({ year: 2026, period: "year", personId: oid });
+    const row = perf.rows[0] || { totalWan: 0, signWan: 0, renewWan: 0, leadCount: 0, customerCount: 0, oppCount: 0, contractCount: 0, targetWan: 0, rate: 0 };
+    const goals = CRM.load().filter((g) => g.personId === oid && Number(g.year) === 2026);
+    const g = goals.find((x) => x.period === "year") || goals[0];
+    const ratePct = Math.round((row.rate || 0) * 100);
+    document.getElementById("main").innerHTML = `
+      <section class="card card-pad">
+        <div class="mine-user">
+          <div class="hero-avatar">${name.slice(0, 1)}</div>
+          <div>
+            <div class="cell-title">${name}</div>
+            <div class="cell-meta">${dept} · ${u.isAdmin ? "管理员" : "业务员"}</div>
+          </div>
+        </div>
+      </section>
+      <section class="card card-pad">
+        <div class="section-title">${row.name || CRM.person(oid)?.name || "我"} · 2026年度</div>
+        <div class="metric-row" style="margin-top:12px">
+          <div class="metric"><div class="metric-label">总业绩</div><div class="metric-value">${Number(row.totalWan).toFixed(1)}万</div></div>
+          <div class="metric"><div class="metric-label">完成率</div><div class="metric-value">${ratePct}%</div></div>
+        </div>
+        <div class="rate-track"><i style="width:${Math.min(100, ratePct)}%"></i></div>
+        <div class="cell-sub" style="margin-top:8px">目标 ${Number(row.targetWan || 0).toFixed(1)} 万</div>
+      </section>
+      <section class="card card-pad">
+        <div class="sec-h">业绩构成</div>
+        <div class="kv">
+          <b>签约金额</b><span class="money">${Number(row.signWan).toFixed(1)} 万</span>
+          <b>续费金额</b><span class="money">${Number(row.renewWan).toFixed(1)} 万</span>
+          <b>线索数</b><span>${row.leadCount} 条</span>
+          <b>成交客户</b><span>${row.customerCount} 家</span>
+          <b>商机数</b><span>${row.oppCount} 个</span>
+          <b>合同数</b><span>${row.contractCount} 份</span>
+        </div>
+      </section>
+      <section class="card card-pad">
+        <div class="sec-h">对照营销目标</div>
+        ${g ? `<div class="kv">
+          <b>新增线索</b><span>${g.leadActual || 0} / ${g.leadTarget || 0} 条</span>
+          <b>成交客户</b><span>${g.customerActual || 0} / ${g.customerTarget || 0} 家</span>
+          <b>商机数量</b><span>${g.oppActual || 0} / ${g.oppTarget || 0} 个</span>
+          <b>签约金额</b><span>${g.signActual || 0} / ${g.signTarget || 0} 万</span>
+          <b>续费金额</b><span>${g.renewActual || 0} / ${g.renewTarget || 0} 万</span>
+        </div>` : `<div class="cell-sub">暂无本年度目标，请在电脑端由主管制定。</div>`}
+      </section>
+      <section class="card card-pad mine-list" style="padding-top:4px;padding-bottom:4px">
+        <a href="reimbursements.html">我的报销 <span>›</span></a>
+        <a href="leads.html?tab=following">待跟进线索 <span>›</span></a>
+      </section>
+      <section class="card card-pad mine-list" style="padding-top:4px;padding-bottom:4px">
+        <button class="soon" type="button">个人中心 <span>›</span></button>
+        <button type="button" data-logout>退出登录 <span>›</span></button>
+      </section>
+    `;
+  </script>
+</body>
+</html>

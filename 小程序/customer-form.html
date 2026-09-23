@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>客户编辑 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" onclick="history.back()">‹</button>
+          <h1 id="title">新增客户</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body">
+          <section class="card card-pad">
+            <div class="form">
+              <div class="field"><label>客户编号</label><input id="c_no" class="ro" disabled /></div>
+              <div class="field"><label class="req">客户/公司名称</label><input id="c_name" placeholder="请输入客户或公司名称" /></div>
+              <div class="field"><label>联系人</label><input id="c_contact" placeholder="请输入联系人姓名" /></div>
+              <div class="field"><label>联系手机</label><input id="c_phone" placeholder="请输入联系手机号" /></div>
+              <div class="field"><label>所属区域</label><input id="c_region" placeholder="如：深圳-南山" /></div>
+              <div class="field"><label>所属行业</label><select id="c_ind"></select></div>
+              <div class="field"><label>企业形式</label><select id="c_type"></select></div>
+              <div class="field"><label>客户来源</label><select id="c_src"></select></div>
+              <div class="field"><label>所属业务员</label><select id="c_owner"></select></div>
+              <div class="field"><label>客户状态</label><select id="c_st"></select></div>
+              <div class="field"><label>详细地址</label><input id="c_addr" placeholder="可匹配地址库" /></div>
+              <div class="field"><label>备注</label><textarea id="c_note" placeholder="请输入备注信息（选填）"></textarea></div>
+            </div>
+            <div class="foot-btn">
+              <button class="btn btn-ghost" type="button" onclick="history.back()">取消</button>
+              <button class="btn btn-primary" type="button" id="ok">确认</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const id = Mini.qs("id");
+    Mini.fillSel(c_ind, CRM.dicts.industries, "请选择");
+    Mini.fillSel(c_type, CRM.dicts.companyTypes, "请选择");
+    Mini.fillSel(c_src, CRM.dicts.sources, "请选择");
+    Mini.fillSel(c_owner, CRM.dicts.people, "请选择");
+    Mini.fillSel(c_st, CRM.dicts.customerStatuses, "请选择");
+    const list = CRM.loadCustomers();
+    let prev = null;
+    if (id) {
+      const c = list.find((x) => x.id === id);
+      if (!c) { Mini.toast("客户不存在"); history.back(); }
+      else {
+        prev = { ...c };
+        document.getElementById("title").textContent = "编辑客户";
+        c_no.value = c.no || "";
+        c_name.value = c.name || "";
+        c_contact.value = c.contact || "";
+        c_phone.value = c.phone || "";
+        c_region.value = c.region || "";
+        c_ind.value = c.industryId || "";
+        c_type.value = c.companyTypeId || "";
+        c_src.value = c.sourceId || "";
+        c_owner.value = c.ownerId || Mini.ownerId();
+        c_st.value = c.statusId || "";
+        c_addr.value = c.address || "";
+        c_note.value = c.remark || "";
+      }
+    } else {
+      c_no.value = CRM.nextCustomerNo(list);
+      c_owner.value = Mini.ownerId() || "";
+      c_st.value = "potential";
+    }
+    document.getElementById("ok").onclick = () => {
+      if (!c_name.value.trim()) { Mini.toast("请填写客户名称"); return; }
+      const data = {
+        no: c_no.value,
+        name: c_name.value.trim(),
+        contact: c_contact.value.trim(),
+        phone: c_phone.value.trim(),
+        region: c_region.value.trim(),
+        industryId: c_ind.value,
+        companyTypeId: c_type.value,
+        sourceId: c_src.value,
+        ownerId: c_owner.value || Mini.ownerId() || "lqh",
+        statusId: c_st.value || "potential",
+        address: c_addr.value.trim(),
+        remark: c_note.value.trim()
+      };
+      if (id) {
+        const i = list.findIndex((x) => x.id === id);
+        list[i] = { ...list[i], ...data };
+        CRM.saveCustomers(list);
+        CRM.syncCustomerLinks(list[i], prev);
+        Mini.toast("客户已更新");
+        setTimeout(() => location.href = "customer-detail.html?id=" + encodeURIComponent(id), 400);
+      } else {
+        const row = { id: "cu-" + Date.now(), createdAt: Mini.today(), leadId: "", oppId: "", ...data };
+        list.unshift(row);
+        CRM.saveCustomers(list);
+        if (row.statusId === "deal") CRM.depositDealCustomerItems(row);
+        Mini.toast(row.statusId === "deal" ? "客户已新增，营业执照已入库" : "客户已新增");
+        setTimeout(() => location.href = "customers.html", 400);
+      }
+    };
+  </script>
+</body>
+</html>

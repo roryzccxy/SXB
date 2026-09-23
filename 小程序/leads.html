@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>线索管理 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <span class="nav-side placeholder"></span>
+          <h1>线索</h1>
+          <a class="nav-side" href="lead-form.html" aria-label="新增">+</a>
+        </header>
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="all" type="button">全部</button>
+          <button class="tab" data-tab="following" type="button">跟进中</button>
+          <button class="tab" data-tab="abandon" type="button">放弃</button>
+          <button class="tab" data-tab="invalid" type="button">无效</button>
+          <button class="tab" data-tab="opportunity" type="button">转商机</button>
+        </div>
+        <div class="search-bar">
+          <input id="kw" placeholder="搜索客户、电话" />
+        </div>
+        <main class="body no-pad" style="flex:1">
+          <div class="list" id="list"></div>
+        </main>
+        <nav class="tabbar"></nav>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount({ tab: "leads" });
+    let tab = Mini.qs("tab") || "all";
+    const tabs = document.getElementById("tabs");
+    tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+    const render = () => {
+      const kw = document.getElementById("kw").value.trim();
+      const rows = CRM.loadLeads().filter(Mini.isMineLead).filter((l) => {
+        if (tab !== "all" && l.followResult !== tab) return false;
+        if (kw && !((l.name || "") + (l.companyName || "") + (l.phone || "")).includes(kw)) return false;
+        return true;
+      });
+      document.getElementById("list").innerHTML = rows.map((l) => {
+        const st = l.followResult;
+        const tagCls = st === "following" ? "" : st === "opportunity" ? "ok" : st === "abandon" || st === "invalid" ? "danger" : "muted";
+        const ops = [];
+        if (st === "following") {
+          ops.push(`<a class="link" href="lead-follow.html?id=${l.id}">添加跟进</a>`);
+          ops.push(`<a class="link" href="lead-convert.html?id=${l.id}">转商机</a>`);
+        }
+        ops.push(`<a class="link" href="lead-form.html?id=${l.id}">详情</a>`);
+        if (l.phone) ops.push(`<a class="link" href="tel:${l.phone}">拨打</a>`);
+        return `<div class="cell">
+          <div class="cell-top"><div class="cell-title">${l.companyName || l.name || "未命名"}</div><span class="tag ${tagCls}">${CRM.dictName("followResults", st)}</span></div>
+          <div class="cell-meta">${l.phone || "—"} · ${CRM.dictName("sources", l.sourceId)} · ${CRM.person(l.ownerId)?.name || "—"}</div>
+          <div class="cell-sub">下次跟进 ${String(l.nextFollowAt || "—").slice(0, 16)}</div>
+          <div class="cell-ops">${ops.join("")}</div>
+        </div>`;
+      }).join("") || `<div class="empty">暂无线索</div>`;
+    };
+    tabs.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-tab]");
+      if (!t) return;
+      tab = t.dataset.tab;
+      tabs.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+      render();
+    });
+    document.getElementById("kw").addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>

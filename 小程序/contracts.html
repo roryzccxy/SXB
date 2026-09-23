@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>合同管理 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <span class="nav-side placeholder"></span>
+          <h1>合同</h1>
+          <a class="nav-side" href="contract-form.html" aria-label="新建">+</a>
+        </header>
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="" type="button">全部</button>
+          <button class="tab" data-tab="signed" type="button">已签约</button>
+          <button class="tab" data-tab="pending" type="button">待签署</button>
+          <button class="tab" data-tab="expired" type="button">已到期</button>
+        </div>
+        <div class="search-bar">
+          <input id="kw" placeholder="搜索合同编号、客户" />
+        </div>
+        <main class="body no-pad" style="flex:1">
+          <div class="list" id="list"></div>
+        </main>
+        <nav class="tabbar"></nav>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount({ tab: "contracts" });
+    let tab = Mini.qs("status") || "";
+    const tabs = document.getElementById("tabs");
+    tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
+    const tagOf = (id) => id === "signed" ? "ok" : id === "expired" ? "warn" : id === "pending" ? "" : "muted";
+    const render = () => {
+      const kw = document.getElementById("kw").value.trim();
+      const rows = CRM.loadContracts().filter(Mini.isMineCt).filter((c) => {
+        if (tab && c.statusId !== tab) return false;
+        if (kw && !((c.no || "") + (c.customerName || "") + (c.phone || "")).includes(kw)) return false;
+        return true;
+      });
+      document.getElementById("list").innerHTML = rows.map((c) => `
+        <a class="cell" href="contract-detail.html?id=${encodeURIComponent(c.id)}">
+          <div class="cell-top"><div class="cell-title">${c.customerName || "—"}</div><span class="tag ${tagOf(c.statusId)}">${CRM.dictName("contractStatuses", c.statusId)}</span></div>
+          <div class="cell-meta">${c.no} · ${CRM.dictName("contractTypes", c.typeId)}</div>
+          <div class="cell-sub"><span class="money">${Mini.yuan(c.amountYuan)}</span> · ${c.startDate || "—"} 至 ${c.endDate || "—"}</div>
+        </a>`).join("") || `<div class="empty">暂无合同</div>`;
+    };
+    tabs.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-tab]");
+      if (!t) return;
+      tab = t.dataset.tab;
+      tabs.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+      render();
+    });
+    document.getElementById("kw").addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>

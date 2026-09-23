@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>客户管理 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <span class="nav-side placeholder"></span>
+          <h1>客户</h1>
+          <a class="nav-side" href="customer-form.html" aria-label="新增">+</a>
+        </header>
+        <div class="search-bar">
+          <input id="kw" placeholder="搜索客户、联系人、电话" />
+        </div>
+        <main class="body no-pad" style="flex:1">
+          <div class="list" id="list"></div>
+        </main>
+        <nav class="tabbar"></nav>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount({ tab: "customers" });
+    const qName = Mini.qs("name");
+    if (qName) document.getElementById("kw").value = qName;
+    const tagOf = (id) => id === "deal" ? "ok" : id === "intent" ? "" : id === "churn" ? "danger" : "muted";
+    const render = () => {
+      const kw = document.getElementById("kw").value.trim();
+      const rows = CRM.loadCustomers().filter(Mini.isMineCust).filter((c) => {
+        if (kw && !((c.name || "") + (c.contact || "") + (c.phone || "") + (c.no || "")).includes(kw)) return false;
+        return true;
+      }).slice(0, 80);
+      document.getElementById("list").innerHTML = rows.map((c) => `
+        <a class="cell" href="customer-detail.html?id=${encodeURIComponent(c.id)}">
+          <div class="cell-top"><div class="cell-title">${c.name}</div><span class="tag ${tagOf(c.statusId)}">${CRM.dictName("customerStatuses", c.statusId)}</span></div>
+          <div class="cell-meta">${c.contact || "—"} · ${c.phone || "—"}</div>
+          <div class="cell-sub">${c.region || "—"} · ${CRM.person(c.ownerId)?.name || "—"}</div>
+        </a>`).join("") || `<div class="empty">暂无客户</div>`;
+    };
+    document.getElementById("kw").addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>

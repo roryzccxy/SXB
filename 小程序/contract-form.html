@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>新建合同 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" onclick="history.back()">‹</button>
+          <h1 id="title">新建合同</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body">
+          <section class="card card-pad">
+            <div class="sec-h">基本信息</div>
+            <div class="form">
+              <div class="field"><label class="req">合同类型</label><select id="c_type"></select></div>
+              <div class="field"><label class="req">公司名称</label><input id="c_company" placeholder="输入公司名称" /></div>
+              <div class="field"><label class="req">联系人</label><input id="c_contact" placeholder="请输入" /></div>
+              <div class="field"><label class="req">联系电话</label><input id="c_phone" placeholder="请输入" /></div>
+            </div>
+          </section>
+          <section class="card card-pad">
+            <div class="sec-h">合同信息</div>
+            <div class="form">
+              <div class="field"><label class="req">合同金额（元）</label><input id="c_amt" type="number" min="0" placeholder="请输入金额" /></div>
+              <div class="field"><label class="req">付款形式</label><select id="c_pay"></select></div>
+              <div class="field"><label class="req">起始日期</label><input id="c_start" type="date" /></div>
+              <div class="field"><label>截止日期</label><input id="c_end" class="ro" disabled /></div>
+              <div class="field"><label>服务时长（年）</label><input id="c_years" type="number" min="1" value="1" /></div>
+              <div class="field" id="addrRow" hidden><label>关联地址</label><input id="c_addr" list="addrList" placeholder="匹配地址库" /><datalist id="addrList"></datalist></div>
+              <div class="field"><label>补充约定</label><textarea id="c_extra" maxlength="500" placeholder="对合同细节进行相关补充"></textarea></div>
+            </div>
+          </section>
+          <section class="card card-pad">
+            <div class="sec-h">签约信息</div>
+            <div class="form">
+              <div class="field"><label class="req">签约公司</label><input id="s_co" value="上海税小理科技有限公司" /></div>
+              <div class="field"><label class="req">业务员</label><input id="s_man" /></div>
+              <div class="field"><label>合同备注</label><textarea id="s_note" maxlength="200" placeholder="内部备注，客户不可见"></textarea></div>
+            </div>
+            <div class="foot-btn">
+              <button class="btn btn-ghost" type="button" onclick="history.back()">取消</button>
+              <button class="btn btn-primary" type="button" id="ok">确认</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const editId = Mini.qs("id");
+    const oppId = Mini.qs("opp");
+    Mini.fillSel(c_type, CRM.dicts.contractTypes, "请选择");
+    Mini.fillSel(c_pay, CRM.dicts.payForms, "请选择");
+    c_pay.value = "year";
+    c_type.value = "book";
+    c_start.value = Mini.today();
+    const u = Mini.user();
+    s_man.value = u.name === "用户" ? "朱桂彬" : u.name;
+    const addrs = CRM.loadAddresses();
+    document.getElementById("addrList").innerHTML = addrs.map((a) => `<option value="${a.name}"></option>`).join("");
+    const syncEnd = () => {
+      if (c_start.value) c_end.value = CRM.endByDuration(c_start.value, Number(c_years.value) || 1, 0);
+    };
+    const syncAddr = () => { document.getElementById("addrRow").hidden = c_type.value !== "addr"; };
+    c_start.addEventListener("input", syncEnd);
+    c_years.addEventListener("input", syncEnd);
+    c_type.addEventListener("change", syncAddr);
+    syncEnd();
+    syncAddr();
+    const list = CRM.loadContracts();
+    if (oppId) {
+      const o = CRM.loadOpps().find((x) => x.id === oppId);
+      if (o) {
+        c_company.value = o.customerName || "";
+        c_contact.value = o.contact || "";
+        c_phone.value = o.phone || "";
+        c_type.value = CRM.productToType(o.productId);
+        if (o.contractAmount) c_amt.value = CRM.wanToYuan(o.contractAmount);
+        syncAddr();
+      }
+    }
+    if (editId) {
+      const c = list.find((x) => x.id === editId);
+      if (c) {
+        document.getElementById("title").textContent = "编辑合同";
+        c_type.value = c.typeId || "book";
+        c_company.value = c.customerName || "";
+        c_contact.value = c.contact || "";
+        c_phone.value = c.phone || "";
+        c_amt.value = c.amountYuan || "";
+        c_pay.value = c.payForm || "year";
+        c_start.value = c.startDate || "";
+        c_years.value = c.years || 1;
+        c_extra.value = c.extra || "";
+        s_co.value = c.signCompany || s_co.value;
+        s_man.value = c.signerName || s_man.value;
+        s_note.value = c.remark || "";
+        syncEnd();
+        syncAddr();
+      }
+    }
+    document.getElementById("ok").onclick = () => {
+      if (!c_company.value.trim() || !c_contact.value.trim() || !c_phone.value.trim() || !s_man.value.trim() || !s_co.value.trim()) {
+        Mini.toast("请填写必填项"); return;
+      }
+      const amt = Number(c_amt.value);
+      if (!(amt > 0)) { Mini.toast("请填写合同金额（元）"); return; }
+      if (!c_start.value) { Mini.toast("请选择起始日期"); return; }
+      const personHit = CRM.dicts.people.find((p) => p.name === s_man.value.trim()) || CRM.person(Mini.ownerId());
+      const typeId = c_type.value || "book";
+      const data = {
+        oppId: oppId || (editId && (list.find((x) => x.id === editId) || {}).oppId) || "",
+        leadId: "",
+        customerName: c_company.value.trim(),
+        contact: c_contact.value.trim(),
+        phone: c_phone.value.trim(),
+        productIds: [CRM.typeToProduct(typeId)],
+        typeId,
+        amountYuan: amt,
+        startDate: c_start.value,
+        endDate: c_end.value,
+        nextFollowAt: CRM.addYMD(c_start.value, 0, 0, 7),
+        statusId: "signed",
+        signDate: c_start.value,
+        signerId: personHit ? personHit.id : (Mini.ownerId() || ""),
+        signerName: s_man.value.trim(),
+        signCompany: s_co.value.trim(),
+        payForm: c_pay.value || "year",
+        firstPay: amt,
+        tailPay: 0,
+        invoice: "normal",
+        years: Number(c_years.value) || 1,
+        giftMonths: 0,
+        extra: (typeId === "addr" && c_addr.value ? "关联地址：" + c_addr.value + "。" : "") + (c_extra.value || ""),
+        remark: s_note.value.trim(),
+        source: "lead"
+      };
+      if (oppId) data.oppId = oppId;
+      if (editId) {
+        const i = list.findIndex((x) => x.id === editId);
+        list[i] = { ...list[i], ...data, id: list[i].id, no: list[i].no, countedSign: list[i].countedSign, countedRenew: list[i].countedRenew, statusId: list[i].statusId === "expired" ? "expired" : data.statusId };
+        CRM.saveContracts(list);
+        CRM.upsertBookFromContract(list[i]);
+        Mini.toast("合同已更新");
+      } else {
+        const row = { id: "ct-new-" + Date.now(), no: CRM.nextContractNo(list), countedSign: false, countedRenew: false, countedItems: false, ...data };
+        CRM.applyContractBusiness(row, { isNew: true, isRenew: false });
+        list.unshift(row);
+        CRM.saveContracts(list);
+        CRM.upsertBookFromContract(row);
+        Mini.toast("合同已创建：已回写商机，并入库客户物品");
+      }
+      setTimeout(() => location.href = "contracts.html", 500);
+    };
+  </script>
+</body>
+</html>

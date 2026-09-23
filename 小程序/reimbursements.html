@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>我的报销 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" id="btnBack">‹</button>
+          <h1 id="navTitle">我的报销</h1>
+          <a class="nav-side" id="btnAdd" href="reimbursement-form.html">+</a>
+        </header>
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="" type="button">全部</button>
+          <button class="tab" data-tab="wait" type="button">待审批</button>
+          <button class="tab" data-tab="pass" type="button">已通过</button>
+          <button class="tab" data-tab="reject" type="button">已驳回</button>
+        </div>
+        <main class="body no-pad" style="flex:1" id="listMain">
+          <div class="list" id="list"></div>
+        </main>
+        <main class="body hidden" id="detailMain"></main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    let tab = "";
+    let viewing = false;
+    const u = Mini.user();
+    const oid = Mini.ownerId();
+    const tagOf = (id) => id === "pass" ? "ok" : id === "reject" ? "danger" : "warn";
+    const showList = () => {
+      viewing = false;
+      document.getElementById("navTitle").textContent = "我的报销";
+      document.getElementById("btnAdd").classList.remove("hidden");
+      document.getElementById("tabs").classList.remove("hidden");
+      document.getElementById("listMain").classList.remove("hidden");
+      document.getElementById("detailMain").classList.add("hidden");
+    };
+    const renderDetail = (x) => {
+      viewing = true;
+      document.getElementById("navTitle").textContent = "报销详情";
+      document.getElementById("btnAdd").classList.add("hidden");
+      document.getElementById("tabs").classList.add("hidden");
+      document.getElementById("listMain").classList.add("hidden");
+      document.getElementById("detailMain").classList.remove("hidden");
+      const man = (CRM.person(x.applicantId) || {}).name || "—";
+      const ap = (CRM.person(x.approverId) || {}).name || "—";
+      const st = x.statusId;
+      const title = st === "pass" ? "审批通过" : st === "reject" ? "审批驳回" : "待审批";
+      const sub = st === "wait" ? (man + " 已提交，等待 " + ap + " 审批") : (ap + " 于 " + (x.approvedAt || "—") + (st === "pass" ? " 审批通过" : " 审批驳回"));
+      const files = x.files || [];
+      document.getElementById("detailMain").innerHTML = `
+        <div class="banner ${st}"><div><h4>${title}</h4><p>${sub}</p></div></div>
+        <section class="card card-pad">
+          <div class="kv">
+            <b>报销编号</b><span>${x.no}</span>
+            <b>报销类型</b><span>${CRM.dictName("reimbTypes", x.typeId)}</span>
+            <b>申请人</b><span>${man}</span>
+            <b>部门</b><span>${CRM.dictName("depts", x.deptId)}</span>
+            <b>申请日期</b><span>${x.applyAt || "—"}</span>
+            <b>报销金额</b><span class="money">${Mini.yuan(x.amount)}</span>
+            <b>发票张数</b><span>${x.invoices || 0} 张</span>
+            <b>审批人</b><span>${ap}</span>
+            <b>关联客户</b><span>${x.customerName ? `<a class="link" href="customer-detail.html?name=${encodeURIComponent(x.customerName)}">${x.customerName}</a>` : "—"}</span>
+          </div>
+          <div class="field" style="margin-top:12px"><label>报销事由</label><div class="cell-sub">${x.reason || "—"}</div></div>
+          <div class="field"><label>备注</label><div class="cell-sub">${x.remark || "—"}</div></div>
+        </section>
+        <section class="card card-pad">
+          <div class="sec-h">发票附件（${files.length}张）</div>
+          ${files.length ? files.map((f) => `<div class="todo-row"><span>${f.name}</span><span class="cell-meta">${Mini.yuan(f.amount || 0)}</span></div>`).join("") : `<div class="cell-sub">暂无附件</div>`}
+        </section>
+        <section class="card card-pad">
+          <div class="sec-h">审批流程</div>
+          <div class="tl">${(x.logs || []).map((l) => `<div class="tl-item"><span class="tl-dot"></span><div class="tl-date">${l.title}　${l.user} · ${l.at}</div><div class="tl-box">${l.text || ""}</div></div>`).join("") || "暂无流程"}</div>
+        </section>
+      `;
+    };
+    const render = () => {
+      const rows = CRM.loadReimbs().filter((x) => {
+        if (oid && x.applicantId !== oid && x.applicantId !== u.id) return false;
+        if (!oid && u.id !== "admin") return x.applicantId === u.id;
+        if (tab && x.statusId !== tab) return false;
+        return true;
+      });
+      document.getElementById("list").innerHTML = rows.map((x) => `
+        <button class="cell" data-id="${x.id}" type="button" style="width:100%;text-align:left">
+          <div class="cell-top"><div class="cell-title">${CRM.dictName("reimbTypes", x.typeId)}</div><span class="tag ${tagOf(x.statusId)}">${CRM.dictName("reimbStatuses", x.statusId)}</span></div>
+          <div class="cell-meta">${x.no} · ${x.applyAt || "—"}</div>
+          <div class="cell-sub"><span class="money">${Mini.yuan(x.amount)}</span> · ${x.reason || ""}</div>
+        </button>`).join("") || `<div class="empty">暂无报销</div>`;
+    };
+    document.getElementById("list").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-id]");
+      if (!b) return;
+      const x = CRM.loadReimbs().find((r) => r.id === b.dataset.id);
+      if (x) renderDetail(x);
+    });
+    document.getElementById("btnBack").onclick = () => {
+      if (viewing) showList();
+      else if (history.length > 1) history.back();
+      else location.href = "mine.html";
+    };
+    document.getElementById("tabs").addEventListener("click", (e) => {
+      const t = e.target.closest("[data-tab]");
+      if (!t) return;
+      tab = t.dataset.tab;
+      document.querySelectorAll("#tabs .tab").forEach((x) => x.classList.toggle("active", x === t));
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

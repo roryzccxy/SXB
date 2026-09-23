@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>客户详情 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" onclick="location.href='customers.html'">‹</button>
+          <h1>客户详情</h1>
+          <a class="nav-side link" id="editLink" href="#">编辑</a>
+        </header>
+        <main class="body" id="main"></main>
+      </div>
+    </div>
+  </div>
+  <datalist id="peopleList"></datalist>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const id = Mini.qs("id");
+    const nameQ = Mini.qs("name");
+    const c = CRM.loadCustomers().find((x) => x.id === id || (nameQ && x.name === nameQ));
+    if (!c) {
+      document.getElementById("main").innerHTML = `<div class="empty">客户不存在</div>`;
+    } else {
+      document.getElementById("editLink").href = "customer-form.html?id=" + encodeURIComponent(c.id);
+      document.getElementById("peopleList").innerHTML = CRM.dicts.people.map((p) => `<option value="${p.name}"></option>`).join("");
+      const cts = CRM.loadContracts().filter((x) => x.customerName === c.name);
+      const opps = CRM.loadOpps().filter((x) => x.customerName === c.name || x.leadId === c.leadId);
+      const books = CRM.loadBook().filter((x) => x.customerName === c.name);
+      const govs = CRM.loadGov().filter((x) => x.customerName === c.name);
+      const items = CRM.loadItems().filter((x) => x.customerName === c.name);
+      const bookHtml = books.map((b) => {
+        const st = CRM.bookChargeState(b.chargeEnd || b.endYm);
+        const cls = st.kind === "danger" ? "danger" : st.kind === "warn" ? "warn" : "ok";
+        return `<div class="todo-row"><span>${CRM.dictName("taxpayers", b.taxpayerId) || "代账"} · ${st.text}</span><span class="tag ${cls}">${b.statusId === "doing" ? "办理中" : "进行中"}</span></div>`;
+      }).join("") || `<div class="cell-sub">暂无代账记录</div>`;
+      const govHtml = govs.map((g) => `<div class="todo-row"><span>${CRM.dictName("govTypes", g.typeId) || g.typeId} · ${CRM.dictName("govTicketStatuses", g.statusId)}</span><span class="cell-meta">${g.doneAt || g.dispatchAt || "未派单"}</span></div>`).join("") || `<div class="cell-sub">暂无政务工单</div>`;
+      const oppHtml = opps.map((o) => {
+        const acts = [];
+        if (o.stageId === "intent") {
+          acts.push(`<a class="link" href="lead-follow.html?opp=${o.id}">跟进</a>`);
+          acts.push(`<a class="link" href="contract-form.html?opp=${o.id}">签合同</a>`);
+        } else if (o.stageId === "win") {
+          acts.push(`<a class="link" href="contract-form.html?opp=${o.id}">新增合同</a>`);
+        }
+        return `<div class="todo-row"><span>${CRM.dictName("oppStages", o.stageId)} · ${CRM.dictName("products", o.productId)}</span><span>${acts.join(" ")}</span></div>`;
+      }).join("") || `<div class="cell-sub">暂无商机</div>`;
+      const itemHtml = items.map((x) => {
+        const act = x.statusId === "stock"
+          ? `<button class="link" data-out="${x.id}" type="button">取出</button>`
+          : x.statusId === "borrowed" ? `<button class="link" data-back="${x.id}" type="button">归还</button>` : "";
+        return `<div class="todo-row"><span>${x.name} · ${CRM.dictName("itemStatuses", x.statusId)}</span>${act}</div>`;
+      }).join("") || `<div class="cell-sub">暂无物品</div>`;
+      document.getElementById("main").innerHTML = `
+        <section class="card card-pad">
+          <div class="cell-top"><div class="cell-title">${c.name}</div><span class="tag ${c.statusId === "deal" ? "ok" : c.statusId === "churn" ? "danger" : ""}">${CRM.dictName("customerStatuses", c.statusId)}</span></div>
+          <div class="kv" style="margin-top:12px">
+            <b>编号</b><span>${c.no || "—"}</span>
+            <b>联系人</b><span>${c.contact || "—"}${c.phone ? `　<a class="call-btn" href="tel:${c.phone}">拨打</a>` : ""}</span>
+            <b>电话</b><span>${c.phone || "—"}</span>
+            <b>区域</b><span>${c.region || "—"}</span>
+            <b>行业</b><span>${CRM.dictName("industries", c.industryId)}</span>
+            <b>来源</b><span>${CRM.dictName("sources", c.sourceId)}</span>
+            <b>业务员</b><span>${CRM.person(c.ownerId)?.name || "—"}</span>
+            <b>地址</b><span>${c.address || "—"}</span>
+          </div>
+        </section>
+        <section class="card card-pad">
+          <div class="section-title" style="margin-bottom:8px">商机 / 合同</div>
+          ${oppHtml}
+          ${cts.map((ct) => `<div class="todo-row"><span>${ct.no} · ${Mini.yuan(ct.amountYuan)}</span><a class="link" href="contract-detail.html?id=${ct.id}">查看</a></div>`).join("")}
+        </section>
+        <section class="card card-pad">
+          <div class="section-title" style="margin-bottom:8px">代账进度</div>
+          ${bookHtml}
+        </section>
+        <section class="card card-pad">
+          <div class="section-title" style="margin-bottom:8px">政务办理</div>
+          ${govHtml}
+        </section>
+        <section class="card card-pad">
+          <div class="section-title" style="margin-bottom:8px">客户物品</div>
+          ${itemHtml}
+          <div class="take-form hidden" id="takeForm">
+            <div class="form">
+              <div class="field"><label>物品</label><input id="i_name" class="ro" disabled /></div>
+              <div class="field"><label class="req">借用人</label><input id="o_who" list="peopleList" placeholder="匹配业务员" /></div>
+              <div class="field"><label>说明</label><input id="o_why" placeholder="年检、外带开票等" /></div>
+            </div>
+            <div class="foot-btn">
+              <button class="btn btn-ghost" type="button" id="takeCancel">取消</button>
+              <button class="btn btn-primary" type="button" id="takeOk">确认取出</button>
+            </div>
+          </div>
+        </section>
+      `;
+      let outId = "";
+      document.getElementById("main").addEventListener("click", (e) => {
+        const backBtn = e.target.closest("[data-back]");
+        const outBtn = e.target.closest("[data-out]");
+        if (backBtn) {
+          const list = CRM.loadItems();
+          const row = list.find((x) => x.id === backBtn.dataset.back);
+          if (!row) return;
+          row.statusId = "stock";
+          row.logs = row.logs || [];
+          row.logs.push({ at: Mini.today(), text: "归还入库" });
+          CRM.recordItemMove(row, "已归还入库");
+          CRM.saveItems(list);
+          Mini.toast("已归还，状态为在存");
+          location.reload();
+        }
+        if (outBtn) {
+          const list = CRM.loadItems();
+          const row = list.find((x) => x.id === outBtn.dataset.out);
+          if (!row) return;
+          outId = row.id;
+          i_name.value = row.name;
+          o_who.value = Mini.user().name === "用户" ? "" : Mini.user().name;
+          o_why.value = "";
+          document.getElementById("takeForm").classList.remove("hidden");
+        }
+      });
+      document.getElementById("takeCancel").onclick = () => document.getElementById("takeForm").classList.add("hidden");
+      document.getElementById("takeOk").onclick = () => {
+        const who = o_who.value.trim();
+        if (!who) { Mini.toast("请填写借用人"); return; }
+        const list = CRM.loadItems();
+        const row = list.find((x) => x.id === outId);
+        if (!row) return;
+        row.statusId = "borrowed";
+        row.logs = row.logs || [];
+        row.logs.push({ at: Mini.today(), text: "取出，借用人：" + who + (o_why.value ? "，" + o_why.value : "") });
+        CRM.recordItemMove(row, "取出，借用人：" + who);
+        CRM.saveItems(list);
+        Mini.toast("已取出");
+        location.reload();
+      };
+    }
+  </script>
+</body>
+</html>

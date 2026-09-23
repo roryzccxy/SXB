@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>添加线索 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" id="btnBack">‹</button>
+          <h1 id="title">添加线索</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body">
+          <section class="card card-pad">
+            <div class="sec-h">客户信息</div>
+            <div class="form">
+              <div class="field"><label>客户/公司名</label><input id="l_name" placeholder="请输入" /></div>
+              <div class="field"><label class="req">手机号码</label><input id="l_phone" placeholder="请输入手机号码" /></div>
+              <div class="field"><label>区域</label><select id="l_region"></select></div>
+              <div class="field"><label>行业</label><select id="l_industry"></select></div>
+              <div class="field"><label>来源渠道</label><select id="l_source"></select></div>
+              <div class="field"><label>企业形式</label><select id="l_company"></select></div>
+              <div class="field"><label>跟进结果</label><select id="l_result"></select></div>
+              <div class="field"><label>是否添加微信</label><select id="l_wechat"></select></div>
+              <div class="field"><label>预计下次跟进时间</label><input id="l_next" type="datetime-local" /></div>
+              <div class="field"><label>跟进内容</label><textarea id="l_content" maxlength="500" placeholder="请输入跟进内容"></textarea></div>
+            </div>
+            <div class="foot-btn">
+              <button class="btn btn-ghost" type="button" id="btnBack2">取消</button>
+              <button class="btn btn-primary" type="button" id="ok">确认</button>
+            </div>
+          </section>
+          <section class="card card-pad hidden" id="tlCard">
+            <div class="sec-h">跟进时间轴</div>
+            <div class="tl" id="tl"></div>
+          </section>
+          <div class="foot-btn hidden" id="viewOps"></div>
+        </main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const id = Mini.qs("id");
+    const back = () => history.length > 1 ? history.back() : location.href = "leads.html";
+    document.getElementById("btnBack").onclick = document.getElementById("btnBack2").onclick = back;
+    Mini.fillSel(l_region, CRM.dicts.regions, "请选择");
+    Mini.fillSel(l_industry, CRM.dicts.industries, "请选择");
+    Mini.fillSel(l_source, CRM.dicts.sources, "请选择");
+    Mini.fillSel(l_company, CRM.dicts.companyTypes, "请选择");
+    Mini.fillSel(l_result, CRM.dicts.followResults, "请选择");
+    Mini.fillSel(l_wechat, CRM.dicts.wechat, "请选择");
+    let viewSnapshot = "";
+    if (id) {
+      const row = CRM.loadLeads().find((x) => x.id === id);
+      if (!row) { Mini.toast("线索不存在"); back(); }
+      else {
+        document.getElementById("title").textContent = "查看线索";
+        l_name.value = row.name || "";
+        l_phone.value = row.phone || "";
+        l_region.value = row.regionId || "";
+        l_industry.value = row.industryId || "";
+        l_source.value = row.sourceId || "";
+        l_company.value = row.companyTypeId || "";
+        l_result.value = row.followResult || "following";
+        l_wechat.value = row.wechatId || "no";
+        l_next.value = Mini.toLocal(row.nextFollowAt);
+        l_content.value = row.followContent || "";
+        ["l_name","l_phone","l_region","l_industry","l_source","l_company","l_result","l_wechat"].forEach((k) => document.getElementById(k).disabled = true);
+        viewSnapshot = l_content.value;
+        const logs = (row.logs || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
+        document.getElementById("tlCard").classList.remove("hidden");
+        document.getElementById("tl").innerHTML = logs.map((log) => {
+          const st = log.status || (log.type === "create" ? "create" : "");
+          const extra = log.from && log.from !== log.status
+            ? `跟进状态 [${CRM.dictName("followResults", log.from)}] → [${CRM.dictName("followResults", log.status)}]<br>`
+            : "";
+          return `<div class="tl-item"><span class="tl-dot ${st}"></span><div class="tl-date">${log.at || ""} · ${log.user || ""}</div><div class="tl-box">${extra}${log.text || ""}</div></div>`;
+        }).join("") || "暂无记录";
+        const ops = [];
+        if (row.followResult === "following") {
+          ops.push(`<a class="btn btn-primary" href="lead-follow.html?id=${row.id}" style="flex:1;height:36px">添加跟进</a>`);
+          ops.push(`<a class="btn btn-ghost" href="lead-convert.html?id=${row.id}" style="flex:1;height:36px">转商机</a>`);
+        } else if (row.followResult === "opportunity") {
+          ops.push(`<a class="btn btn-primary" href="#" id="btnOpp" style="flex:1;height:36px">查看客户/商机</a>`);
+        }
+        if (row.phone) ops.push(`<a class="btn btn-ghost" href="tel:${row.phone}" style="flex:1;height:36px">拨打</a>`);
+        if (ops.length) {
+          document.getElementById("viewOps").classList.remove("hidden");
+          document.getElementById("viewOps").innerHTML = ops.join("");
+          const btnOpp = document.getElementById("btnOpp");
+          if (btnOpp) btnOpp.onclick = (e) => {
+            e.preventDefault();
+            Mini.openCustomer({ name: row.companyName || row.name, leadId: row.id, phone: row.phone });
+          };
+        }
+      }
+    } else {
+      l_result.value = "following";
+      l_wechat.value = "yes";
+    }
+    document.getElementById("ok").onclick = () => {
+      if (!l_phone.value.trim()) { Mini.toast("请填写手机号码"); return; }
+      const leads = CRM.loadLeads();
+      const u = Mini.user();
+      if (!id) {
+        const owner = Mini.ownerId() || "lqh";
+        const row = {
+          id: "l" + Date.now(),
+          name: l_name.value.trim(),
+          phone: l_phone.value.trim(),
+          regionId: l_region.value,
+          industryId: l_industry.value,
+          sourceId: l_source.value,
+          companyTypeId: l_company.value,
+          followResult: l_result.value || "following",
+          categoryId: "c1",
+          wechatId: l_wechat.value,
+          followContent: l_content.value,
+          nextFollowAt: Mini.fromLocal(l_next.value),
+          lastFollowAt: Mini.now(),
+          createdAt: Mini.now(),
+          ownerId: owner,
+          logs: [{ at: Mini.now(), type: "create", user: u.name, text: "创建了线索" }]
+        };
+        leads.unshift(row);
+        CRM.saveLeads(leads);
+        CRM.bumpMetric(row.ownerId, "leadActual", 1);
+        Mini.toast("线索已写入，并计入营销目标");
+      } else {
+        const row = leads.find((x) => x.id === id);
+        row.nextFollowAt = Mini.fromLocal(l_next.value);
+        row.followContent = l_content.value;
+        if (l_content.value !== viewSnapshot) {
+          row.lastFollowAt = Mini.now();
+          row.logs = row.logs || [];
+          row.logs.unshift({ at: row.lastFollowAt, type: "note", user: u.name, text: "跟进内容：" + l_content.value });
+        }
+        CRM.saveLeads(leads);
+        Mini.toast("已更新，最后跟进时间已记为当前时间");
+      }
+      setTimeout(() => location.href = "leads.html", 400);
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>合同详情 - CRM</title>
+  <link rel="stylesheet" href="../css/design-system.css" />
+  <link rel="stylesheet" href="css/mini.css" />
+  <script src="js/auth.js"></script>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="stage">
+    <div class="phone-scale">
+      <div class="phone" id="phone">
+        <div class="status-bar"><span id="statusTime">9:41</span><span class="dots">CRM</span></div>
+        <header class="navbar">
+          <button class="nav-side" type="button" onclick="location.href='contracts.html'">‹</button>
+          <h1>合同详情</h1>
+          <span class="nav-side placeholder"></span>
+        </header>
+        <main class="body" id="main"></main>
+      </div>
+    </div>
+  </div>
+  <script src="../js/crm-store.js"></script>
+  <script src="js/mini.js"></script>
+  <script>
+    Mini.mount();
+    const list = CRM.loadContracts();
+    const c = list.find((x) => x.id === Mini.qs("id") || x.no === Mini.qs("no"));
+    if (!c) {
+      document.getElementById("main").innerHTML = `<div class="empty">合同不存在</div>`;
+    } else {
+      const stCls = c.statusId === "signed" ? "ok" : c.statusId === "expired" ? "warn" : "";
+      const ops = [];
+      if (c.statusId !== "expired" && c.statusId !== "void") ops.push(`<a class="btn btn-ghost" href="contract-form.html?id=${c.id}" style="flex:1;height:36px">编辑</a>`);
+      if (c.customerName) ops.push(`<a class="btn btn-ghost" href="customer-detail.html?name=${encodeURIComponent(c.customerName)}" style="flex:1;height:36px">物品/客户</a>`);
+      if (c.phone) ops.push(`<a class="btn btn-ghost" href="tel:${c.phone}" style="flex:1;height:36px">拨打</a>`);
+      const renewHtml = c.statusId === "expired" ? `
+        <section class="card card-pad">
+          <div class="sec-h">发起续费</div>
+          <div class="warn">续费将基于原合同创建新合同，原合同保留不变。</div>
+          <div class="form">
+            <div class="field"><label>新合同编号</label><input id="r_no" class="ro" disabled /></div>
+            <div class="field"><label>续费金额</label><input id="r_amt" type="number" min="0" /></div>
+            <div class="field"><label>生效日期</label><input id="r_start" type="date" /></div>
+            <div class="field"><label>到期日期</label><input id="r_end" type="date" /></div>
+            <div class="field"><label>业务员</label><input id="r_man" /></div>
+            <div class="field"><label>关联地址</label><input id="r_addr" list="addrList" placeholder="匹配地址库" /><datalist id="addrList"></datalist></div>
+            <div class="field"><label>续费备注</label><textarea id="r_note" placeholder="请输入续费说明"></textarea></div>
+          </div>
+          <div class="foot-btn"><button class="btn btn-primary" type="button" id="renewOk">确认续费</button></div>
+        </section>` : "";
+      document.getElementById("main").innerHTML = `
+        <section class="card card-pad">
+          <div class="cell-top"><div class="cell-title">${c.customerName}</div><span class="tag ${stCls}">${CRM.dictName("contractStatuses", c.statusId)}</span></div>
+          <div class="kv" style="margin-top:12px">
+            <b>合同编号</b><span>${c.no}</span>
+            <b>合同类型</b><span>${CRM.dictName("contractTypes", c.typeId)}</span>
+            <b>联系人</b><span>${c.contact || "—"}</span>
+            <b>电话</b><span>${c.phone || "—"}</span>
+            <b>总金额</b><span class="money">${Mini.yuan(c.amountYuan)}</span>
+            <b>付款形式</b><span>${CRM.dictName("payForms", c.payForm)}</span>
+            <b>生效日期</b><span>${c.startDate || "—"}</span>
+            <b>到期日期</b><span>${c.endDate || "—"}</span>
+            <b>签约日期</b><span>${c.signDate || "—"}</span>
+            <b>业务员</b><span>${c.signerName || CRM.person(c.signerId)?.name || "—"}</span>
+            <b>签约公司</b><span>${c.signCompany || "—"}</span>
+            <b>付款状态</b><span>${CRM.dictName("payStatuses", c.payStatusId)}</span>
+          </div>
+        </section>
+        <section class="card card-pad">
+          <div class="sec-h">备注与约定</div>
+          <div class="cell-sub">${c.extra || c.remark || "暂无补充约定"}</div>
+        </section>
+        ${renewHtml}
+        <div class="foot-btn">${ops.join("")}</div>
+      `;
+      if (c.statusId === "expired") {
+        r_no.value = CRM.nextContractNo(list);
+        r_amt.value = c.amountYuan || "";
+        r_start.value = Mini.today();
+        r_end.value = CRM.endByDuration(r_start.value, 1, 0);
+        r_man.value = c.signerName || Mini.user().name;
+        document.getElementById("addrList").innerHTML = CRM.loadAddresses().map((a) => `<option value="${a.name}"></option>`).join("");
+        r_start.addEventListener("input", () => { r_end.value = CRM.endByDuration(r_start.value, 1, 0); });
+        document.getElementById("renewOk").onclick = () => {
+          const amt = Number(r_amt.value);
+          if (!(amt > 0) || !r_start.value || !r_end.value) { Mini.toast("请填写续费金额与日期"); return; }
+          const personHit = CRM.dicts.people.find((p) => p.name === r_man.value.trim());
+          const row = {
+            ...c,
+            id: "ct-renew-" + Date.now(),
+            no: r_no.value,
+            amountYuan: amt,
+            startDate: r_start.value,
+            endDate: r_end.value,
+            nextFollowAt: CRM.addYMD(r_start.value, 0, 0, 7),
+            statusId: "signed",
+            signDate: r_start.value,
+            signerId: personHit ? personHit.id : c.signerId,
+            signerName: r_man.value.trim() || c.signerName,
+            firstPay: amt,
+            paidYuan: amt,
+            payStatusId: "paid",
+            payAt: r_start.value,
+            remark: r_note.value.trim(),
+            extra: (r_addr.value ? "关联地址：" + r_addr.value + "。" : "") + (r_note.value || ""),
+            renewFrom: c.no,
+            countedSign: true,
+            countedRenew: false,
+            countedItems: false
+          };
+          CRM.applyContractBusiness(row, { isNew: false, isRenew: true });
+          list.unshift(row);
+          CRM.saveContracts(list);
+          CRM.upsertBookFromContract(row);
+          Mini.toast("已续费：新合同已生成，合同原件已入库");
+          setTimeout(() => location.href = "contracts.html", 500);
+        };
+      }
+    }
+  </script>
+</body>
+</html>
